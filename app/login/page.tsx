@@ -1,3 +1,4 @@
+import type {Metadata} from 'next'; export const metadata:Metadata={title:'Log in',description:'Sign in to manage your Promise Computer Research orders.',alternates:{canonical:'/login'},robots:{index:false,follow:false}};
 import {Suspense} from 'react';
 import AuthForm from '@/components/auth/AuthForm';
 

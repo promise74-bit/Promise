@@ -1,3 +1,4 @@
+import type {Metadata} from 'next'; export const metadata:Metadata={title:'Create account',description:'Create an account to submit and track your service requests.',alternates:{canonical:'/register'},robots:{index:false,follow:false}};
 import {Suspense} from 'react';
 import AuthForm from '@/components/auth/AuthForm';
 

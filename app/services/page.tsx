@@ -1,3 +1,4 @@
+import type {Metadata} from 'next'; export const metadata:Metadata={title:'Our Services',description:'Browse JAMB, WAEC, NECO, Post-UTME, school fees, documentation, airtime, data, TV subscription and academic support services from Promise Computer Research.',alternates:{canonical:'/services'}};
 import Link from "next/link";
 import {createClient} from "@/lib/supabase/server";
 import {getServicePresentation} from "@/lib/service-presentation";
