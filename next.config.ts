@@ -1,15 +1,11 @@
 import type {NextConfig} from 'next';
 
+// The homepage is the static landing page at public/index.html.
+// "/" redirects there before the app routes run, so the landing page always shows.
+// All other app routes (/login, /services, /dashboard, ...) are unaffected.
 const nextConfig: NextConfig = {
-  // The static landing page is the public homepage. beforeFiles runs before
-  // app routes, so "/" serves public/landing/index.html. The rest of the app
-  // (login, dashboard, services, etc.) is unaffected.
-  async rewrites() {
-    return {
-      beforeFiles: [{ source: '/', destination: '/landing/index.html' }],
-      afterFiles: [],
-      fallback: [],
-    };
+  async redirects() {
+    return [{ source: '/', destination: '/index.html', permanent: false }];
   },
 };
 

@@ -1,11 +1,6 @@
-# Landing page (static)
+# Landing page
 
-`index.html` is a self-contained static landing page. It is the public homepage:
-`next.config.ts` rewrites `/` to `/landing/index.html` (a `beforeFiles` rewrite, so it
-takes priority over `app/page.tsx`). The page is also reachable directly at `/landing/`.
+The homepage is `public/index.html`, served at `/`. It is a self-contained static page.
+The Next.js app routes (`/services`, `/login`, `/dashboard`, ...) are unchanged.
 
-`app/page.tsx` is no longer served at `/`. It is kept only as a fallback; delete it when
-you are sure you won't revert.
-
-Note: the page hotlinks its hero image from a third-party host (`user24606.cn.imgto.link`).
-Re-host the image under `public/landing/` to avoid broken images.
+Note: the page hotlinks its hero logo from `user24606.cn.imgto.link`. Re-host it under `public/` if that host becomes unreliable.
