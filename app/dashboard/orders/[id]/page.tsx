@@ -1,0 +1,103 @@
+import {notFound,redirect} from 'next/navigation';
+import Link from 'next/link';
+import {createClient} from '@/lib/supabase/server';
+import {createAdminClient} from '@/lib/supabase/admin';
+import DocumentUpload from './DocumentUpload';
+import RequeryPaymentButton from '@/components/payments/RequeryPaymentButton';
+import PayButton from '../PayButton';
+import {describeOrdered,describeReceived,DELIVERY_KEYS,PIN_SLUGS} from '@/lib/order-summary';
+import {customerSafeError} from '@/lib/service-errors';
+
+export default async function OrderDetail({params}:{params:Promise<{id:string}>}){
+  const {id}=await params;
+  const supabase=await createClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)redirect('/login');
+
+  // Verify ownership before using the service-role client to create private-file links.
+  const {data:order}=await supabase
+    .from('orders')
+    .select('id,reference,status,payment_status,amount,created_at,updated_at,customer_note,admin_note,form_data,services(title,slug,category)')
+    .eq('id',id)
+    .eq('customer_id',user.id)
+    .maybeSingle();
+
+  if(!order)notFound();
+  const service=Array.isArray(order.services)?order.services[0]:order.services;
+
+  const {data:docs}=await supabase
+    .from('order_documents')
+    .select('id,file_name,storage_path,mime_type,size_bytes,created_at')
+    .eq('order_id',id)
+    .order('created_at',{ascending:false});
+
+  const admin=createAdminClient();
+  const documents=await Promise.all((docs||[]).map(async d=>{
+    const storage=admin.storage.from('order-documents');
+    const [{data:viewData},{data:downloadData}]=await Promise.all([
+      storage.createSignedUrl(d.storage_path,3600),
+      storage.createSignedUrl(d.storage_path,3600,{download:d.file_name})
+    ]);
+    return {
+      ...d,
+      viewUrl:viewData?.signedUrl||null,
+      downloadUrl:downloadData?.signedUrl||null,
+      fromAdmin:d.storage_path.startsWith('admin/')
+    };
+  }));
+
+  const expectedPins = Math.max(1, Number(order.form_data?.quantity || 1));
+  const savedPinsText = typeof order.form_data?.delivery_pins === 'string' ? order.form_data.delivery_pins : '';
+  const deliveredPinCount = Math.max((savedPinsText.match(/PIN:\s*(?!pending\b)[^|\n]+/gi) || []).length, typeof order.form_data?.delivery_pin === 'string' && order.form_data.delivery_pin.trim() ? 1 : 0);
+  const missingRequiredDelivery = order.form_data?.pairgate_test_mode === true
+    ? true
+    : service?.slug === 'electricity-bill'
+    ? !(typeof order.form_data?.delivery_pin === 'string' && order.form_data.delivery_pin.trim())
+    : PIN_SLUGS.includes(String(service?.slug))
+    ? deliveredPinCount < expectedPins || /PIN pending/i.test(savedPinsText)
+    : false;
+  const ordered=describeOrdered(String(service?.slug||''),order.form_data||{});
+  const received=describeReceived(String(service?.slug||''),String(order.status),order.form_data||{});
+  const tone={good:'border-emerald-300 bg-emerald-50 text-emerald-900',wait:'border-amber-300 bg-amber-50 text-amber-900',bad:'border-red-300 bg-red-50 text-red-900',neutral:'border-slate-200 bg-slate-50 text-slate-700'}[received.tone];
+
+  return <div>
+    <div className="mb-5"><Link href="/dashboard/orders" className="text-sm font-bold text-[#0757d5]">← Back to my orders</Link></div>
+    <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Order {order.reference}</p><h1 className="mt-1 text-2xl font-black">{service?.title||'Service request'}</h1></div>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-[#0757d5]">{String(order.status).replace('_',' ')}</span>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-bold text-slate-400">Payment</p><p className="mt-1 font-bold capitalize">{String(order.payment_status).replace('_',' ')}</p>{Number(order.amount||0)>0&&(!['completed','cancelled'].includes(String(order.status)) || missingRequiredDelivery)&&<RequeryPaymentButton orderId={order.id} paid={order.payment_status==='paid'}/>}</div>
+        <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-bold text-slate-400">Amount</p><p className="mt-1 font-bold">₦{Number(order.amount||0).toLocaleString()}</p>{Number(order.amount||0)<=0&&order.payment_status!=='paid'&&<p className="mt-2 text-sm text-amber-800">Awaiting a quote from Promise Computer Research. You will see the amount here when it is ready.</p>}{Number(order.amount||0)>0&&['unpaid','failed'].includes(String(order.payment_status))&&<div className="mt-3"><PayButton orderId={order.id}/></div>}</div>
+      </div>
+      {ordered.headline&&<div className="mt-5 rounded-2xl border border-slate-200 p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-400">What you ordered</p><p className="mt-1 font-black text-slate-900">{ordered.headline}</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{ordered.details.filter(([,v])=>v&&v!=='₦0').map(([k,v])=><div key={k} className="rounded-xl bg-slate-50 px-3 py-2"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{k}</p><p className="text-sm font-semibold text-slate-700">{v}</p></div>)}</div></div>}
+      {ordered.headline&&<div className={'mt-4 rounded-2xl border-2 p-5 '+tone}><p className="text-xs font-black uppercase tracking-wide opacity-80">What you received</p><p className="mt-1 text-lg font-black">{received.label}</p>{received.detail&&received.tone!=='good'&&<p className="mt-1 text-sm">{customerSafeError(received.detail)}</p>}
+        {received.pins.length>0&&<div className="mt-4 space-y-3">{received.pins.map((row,i)=><div key={i} className="rounded-xl border border-emerald-200 bg-white p-4"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{received.pins.length>1?'Card '+(i+1):'Recharge PIN'}</p><p className="mt-1 break-all font-mono text-xl font-black tracking-wider text-slate-900">{row.PIN}</p><div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-700">{row.Serial&&<span><b>Serial:</b> <span className="font-mono">{row.Serial}</span></span>}{row.Denomination&&<span><b>Value:</b> {row.Denomination}</span>}{row.Expires&&<span><b>Expires:</b> {row.Expires}</span>}</div></div>)}<p className="text-sm text-emerald-900">Keep these details safe. Anyone with the PIN can load the card, so do not share it publicly.</p></div>}
+        {received.token&&<div className="mt-3 rounded-xl border border-emerald-200 bg-white p-4"><p className="break-words font-mono text-xl font-black tracking-wide text-slate-900">{received.token}</p><p className="mt-2 text-sm text-emerald-900">{service?.slug==='electricity-bill'?'Enter this token on your prepaid meter. Keep it for your records.':'Keep this delivery information for your records.'}</p></div>}
+      </div>}
+      {order.payment_status==='paid' && String(service?.category||'').trim().toUpperCase()==='JAMB' && <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="font-black text-emerald-900">Payment received</p><p className="mt-1 text-sm text-emerald-800">PCR will fulfil this service manually. If you want to send your order details on WhatsApp as well, you can do so below; this is optional.</p><a href={"https://wa.me/2347058391188?text="+encodeURIComponent("PCR JAMB SERVICE ORDER\nService: "+String(service?.title||"") +"\nOrder reference: "+order.reference+"\nFull name: "+String(order.form_data?.full_name||"")+"\nPhone: "+String(order.form_data?.phone||"")+"\nExam year: "+String(order.form_data?.exam_year||"")+"\nJAMB registration number: "+String(order.form_data?.jamb_registration_number||"Not provided"))} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white">Optional: Continue on WhatsApp</a></div>}
+      {order.admin_note&&<div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4"><p className="text-xs font-black uppercase tracking-wide text-[#0757d5]">Update from Promise Computer Research</p><p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{customerSafeError(order.admin_note)}</p></div>}
+      <div className="mt-5">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">Submitted information</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">{Object.entries(order.form_data||{}).filter(([key])=>!DELIVERY_KEYS.includes(key)).map(([key,value])=><div key={key} className="rounded-2xl border border-slate-200 p-4"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{key.replaceAll('_',' ')}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-slate-700">{typeof value==="object"&&value!==null?JSON.stringify(value,null,2):String(value??"—")}</p></div>)}</div>
+      </div>
+      <div className="mt-5">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">Documents</p>
+        <p className="mt-1 text-sm text-slate-500">Open or download files attached to this order. Download links expire after one hour; reopen this page to generate fresh links.</p>
+        <div className="mt-3 space-y-2">
+          {documents.length?documents.map(d=><div key={d.id} className="rounded-2xl border border-slate-200 p-4">
+            <p className="break-words font-bold">{d.file_name}</p>
+            <p className="mt-1 text-xs text-slate-400">{d.fromAdmin?'Document from Promise Computer Research':'Document you uploaded'} · {d.mime_type||'File'}{d.size_bytes?' · '+Math.ceil(Number(d.size_bytes)/1024)+' KB':''}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {d.viewUrl&&<a href={d.viewUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">View</a>}
+              {d.downloadUrl&&<a href={d.downloadUrl} className="rounded-xl bg-[#0757d5] px-4 py-2 text-sm font-bold text-white">Download</a>}
+              {!d.viewUrl&&!d.downloadUrl&&<span className="text-xs text-red-500">File link unavailable. Please contact support.</span>}
+            </div>
+          </div>):<p className="text-sm text-slate-500">No documents attached to this order.</p>}
+          <DocumentUpload orderId={order.id}/>
+        </div>
+      </div>
+    </section>
+  </div>;
+}
