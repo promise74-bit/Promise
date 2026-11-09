@@ -28,9 +28,9 @@ export default function RefreshProviderStatusButton({ orderId }: { orderId: stri
   }
 
   return <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-    <p className="text-sm text-slate-600">If the service has already arrived but this order still says processing, check the latest status with Pairgate.</p>
+    <p className="text-sm text-slate-600">If the service has already arrived but this order still says processing, check the latest status with the provider.</p>
     <button type="button" onClick={refresh} disabled={loading} className="mt-3 rounded-xl bg-[#0757d5] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">
-      {loading ? 'Checking Pairgate…' : 'Refresh provider status'}
+      {loading ? 'Checking status…' : 'Refresh provider status'}
     </button>
     {message && <p className={'mt-3 text-sm font-medium ' + (ok ? 'text-emerald-700' : 'text-amber-800')}>{message}</p>}
   </div>;

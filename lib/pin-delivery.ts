@@ -1,6 +1,6 @@
-// Shared helpers for reading recharge-card / exam PINs out of Pairgate payloads.
+// Shared helpers for reading recharge-card / exam PINs out of provider payloads.
 //
-// Pairgate returns PINs as `data.pins[]`. Depending on the product an item can be a
+// Providers return PINs as `data.pins[]`. Depending on the product an item can be a
 // plain string ("1234567890123456"), a "pin<=>serial" string, or an object whose field
 // names differ (pin / pin_code / pin_number / code ...). Previously only objects with a
 // `pin` key were recognised, so valid purchases were treated as "no PIN delivered" and
@@ -67,7 +67,7 @@ function fromItem(item: any, fallbackDenomination: string, strict = false): Extr
 }
 
 /**
- * Pull every delivered PIN out of a Pairgate payload. Accepts the raw response
+ * Pull every delivered PIN out of a the provider payload. Accepts the raw response
  * ({code,status,data:{...}}), the inner `data` object, or a webhook event.
  */
 export function extractPins(payload: any): ExtractedPin[] {

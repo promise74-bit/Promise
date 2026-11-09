@@ -3,6 +3,6 @@ import { NextResponse } from "next/server";
 export async function POST() {
   return NextResponse.json({
     code: "NOT_SUPPORTED",
-    message: "Pairgate customer verification for cable TV and electricity is not yet integrated.",
+    message: "Verification happens when an order is created.",
   }, { status: 501 });
 }

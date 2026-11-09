@@ -101,7 +101,7 @@ export default async function Admin({searchParams}:{searchParams:Promise<{filter
               {received.detail&&received.tone!=='good'&&<p className="mt-1 text-xs">{received.detail}</p>}
             </div>
             <div className="rounded-2xl bg-slate-50 p-4 text-sm">
-              <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Provider (Pairgate)</p>
+              <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Provider (WoodPay)</p>
               {latest?<>
                 <p className="mt-1"><b>Status:</b> <span className="capitalize">{String(latest.status).replace('_',' ')}</span>{latest.provider_status?' · '+latest.provider_status:''}</p>
                 <p className="break-all text-xs text-slate-500">Ref: {latest.provider_reference||latest.request_id}</p>

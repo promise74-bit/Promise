@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { fulfillOrder } from '@/lib/pairgate';
+import { fulfillOrder } from '@/lib/woodpay';
 import { customerSafeError } from '@/lib/service-errors';
 
 function diagnose(result: any, expectedAmount: number, expectedCurrency: string) {

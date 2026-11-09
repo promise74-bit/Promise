@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function PairgateHealth() {
+export default function WoodPayHealth() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -27,8 +27,8 @@ export default function PairgateHealth() {
     <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-black">Pairgate Connection</h2>
-          <p className="mt-1 text-sm text-slate-500">Test whether the deployed server can reach Pairgate using the configured API credentials.</p>
+          <h2 className="text-xl font-black">WoodPay Connection</h2>
+          <p className="mt-1 text-sm text-slate-500">Test whether the deployed server can reach WoodPay using the configured API credentials.</p>
         </div>
         <button onClick={testConnection} disabled={loading} className="rounded-xl bg-[#0757d5] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
           {loading ? 'Testing…' : 'Test Connection'}
@@ -43,6 +43,7 @@ export default function PairgateHealth() {
             {result.httpStatus != null && <span className="rounded-full bg-white px-3 py-1">HTTP {result.httpStatus}</span>}
             {result.providerOk != null && <span className="rounded-full bg-white px-3 py-1">Provider: {result.providerOk ? 'OK' : 'Rejected'}</span>}
           </div>
+          {result.walletBalance != null && <p className="mt-3 text-sm font-bold">WoodPay wallet balance: ₦{Number(result.walletBalance).toLocaleString()}</p>}
           <p className="mt-3 text-xs text-slate-500">Endpoint tested: {result.endpoint || '—'}</p>
           {result.providerError && <p className="mt-3 rounded-xl bg-white p-3 text-xs text-red-700">Provider connection failed. Check server logs for technical details.</p>}
           {result.providerResponse !== undefined && <p className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-700">Provider connection successful. Sensitive response details are hidden.</p>}
@@ -50,7 +51,7 @@ export default function PairgateHealth() {
       )}
 
       {failed && !result.providerError && (
-        <p className="mt-4 text-sm font-semibold text-red-700">Pairgate could not be reached.</p>
+        <p className="mt-4 text-sm font-semibold text-red-700">WoodPay could not be reached.</p>
       )}
     </section>
   );

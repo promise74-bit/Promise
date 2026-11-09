@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fulfillOrder } from "@/lib/pairgate";
+import { fulfillOrder } from "@/lib/woodpay";
 import { customerSafeError } from "@/lib/service-errors";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -24,7 +24,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     // fulfillOrder is idempotent: when a provider transaction already exists, it queries
-    // Pairgate's status endpoint instead of submitting a second purchase.
+    // WoodPay's status endpoint instead of submitting a second purchase.
     const result = await fulfillOrder(id);
     const { data: latest, error: latestError } = await admin.from("orders")
       .select("status,admin_note")
@@ -34,13 +34,13 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     const status = String(latest.status || result.status || "processing");
     const message = status === "completed"
-      ? "Pairgate confirms delivery. This order is now completed."
+      ? "WoodPay confirms delivery. This order is now completed."
       : status === "needs_information"
       ? customerSafeError(latest.admin_note || "This order needs a manual provider-status check.")
-      : "Pairgate still reports this transaction as processing. No new purchase was submitted.";
+      : "WoodPay still reports this transaction as processing. No new purchase was submitted.";
     return NextResponse.json({ ok: true, status, message });
   } catch (error) {
-    console.error("Refresh Pairgate order status failed:", error);
+    console.error("Refresh WoodPay order status failed:", error);
     return NextResponse.json({
       ok: false,
       message: customerSafeError(error, "Could not refresh the service status. Please try again later."),

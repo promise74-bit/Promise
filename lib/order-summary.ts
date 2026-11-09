@@ -93,12 +93,12 @@ export const DELIVERY_KEYS = [
   "pairgate_delivery", "pairgate_test_mode",
 ];
 
-/** Pull provider cost / margin out of the saved Pairgate purchase response. */
+/** Pull provider cost out of the saved WoodPay purchase response. */
 export function providerCostOf(transactions: any[] = []): number | null {
   for (const tx of transactions) {
     const data = tx?.response?.data ?? tx?.response;
-    const total = Number(data?.total_amount);
-    if (tx?.status === "successful" || data?.status === true) if (Number.isFinite(total) && total > 0) return total;
+    const total = Number(data?.price ?? data?.total_amount);
+    if (tx?.status === "successful" || data?.status === "success") if (Number.isFinite(total) && total > 0) return total;
   }
   return null;
 }

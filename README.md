@@ -38,16 +38,17 @@ Those belong to Build 3/4.
 ## Important
 The SQL schema uses customer-only RLS policies. Admin policies and admin UI are intentionally reserved for the next build. Do not disable RLS in production.
 
-## Pairgate VTU integration
+## WoodPay VTU integration
 
-Airtime and mobile-data fulfilment use the server-side Pairgate adapter in `lib/pairgate.ts`. The data request form loads plans through `/api/pairgate/data-plans`; the order-creation route fetches the catalogue again and derives the plan ID and provider price on the server rather than trusting the browser.
+Airtime, mobile data, cable TV and electricity are delivered through the WoodPayVTU reseller API (`lib/woodpay.ts`). Plans are loaded through `/api/woodpay/*`; the order-creation route re-checks every price on the server.
 
-Required Vercel environment variables:
-- `PAIRGATE_API_KEY` — Pairgate API key; server-side only, never use a `NEXT_PUBLIC_` prefix.
-- `PAIRGATE_BASE_URL` — optional; defaults to `https://pairgate.com/api/v1`.
-- `PAIRGATE_TEST_MODE` — **the code defaults to `false` (live) when this variable is unset**, so always set it explicitly (`true` for test routes, `false` for live). When true, only supported purchase/verification/status endpoints use Pairgate's `/test` routes while true. Set explicitly to `false` in the production environment only after confirming test responses and approving live fulfilment. Orders created in test mode are not proof of a live provider purchase and require a deliberate retry after switching to live mode.
-- `PAIRGATE_WEBHOOK_SECRET` — required by the current webhook route. Enable webhook signature verification in Pairgate, copy the generated secret into Vercel, and configure the webhook URL as `https://<your-production-domain>/api/pairgate/webhook`. If the secret is missing or mismatched, the webhook will be rejected and asynchronous electricity tokens/exam PINs may not be delivered to the order.
+Environment variables (server-side only, never `NEXT_PUBLIC_`):
 
-Pairgate fulfilment code covers airtime, mobile data, cable TV, electricity, exam PINs and data PINs. Before live use, verify each service against Pairgate's current API/catalogue and webhook payloads. Electricity and exam-PIN orders must remain processing until actual delivery details are saved; test-mode responses are never proof of live fulfilment. Paystack remains the customer payment gateway; Pairgate is the fulfilment provider.
+- `WOODPAY_API_KEY` — your WoodPay API key (WoodPay app → Services → Vendor & API).
+- `WOODPAY_BASE_URL` — optional; defaults to `https://woodpay.com.ng/api/v1`.
 
-Pairgate documentation: `https://pairgate.com/developers`.
+**Markup:** customers pay the WoodPay price plus the markup you set in Admin → Markup (percent or flat, per service). Run `supabase/migrations/20261110120000_woodpay_markup.sql` once; it seeds the previous rates (3% airtime, 5% data/cable/electricity).
+
+**Wallet:** orders are paid from your WoodPay wallet. Keep it funded; Admin → WoodPay Connection shows the balance.
+
+**Not on WoodPay:** exam PINs and recharge-card PINs. They are still sold on the site but staff deliver them manually (Admin → order → Manual delivery).

@@ -10,7 +10,8 @@ type UtilityProvider={id:string;name:string};
 type EpinDenomination={value:number;label:string};
 
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
-const FEE_RATE:Record<string,number>={airtime:3,data:5,cable:5,electricity:5,exam:5,datapin:5};
+type MarkupRule={mode:"percent"|"flat";value:number};
+const DEFAULT_RULES:Record<string,MarkupRule>={airtime:{mode:"percent",value:3},data:{mode:"percent",value:5},cable:{mode:"percent",value:5},electricity:{mode:"percent",value:5},exam:{mode:"percent",value:5},datapin:{mode:"percent",value:5}};
 const EXAM_PIN_PRICES:Record<string,number>={waec:5800,neco:2200,nabt:1500};
 const SERVICE_UNAVAILABLE_MESSAGE="This service is not currently available. Please try again later.";
 function canonicalExamProvider(value:unknown){
@@ -74,12 +75,15 @@ export default function RequestService(){
   setPageLoading(false);
  })();},[params.slug,router]);
 
+ const [rules,setRules]=useState<Record<string,MarkupRule>>(DEFAULT_RULES);
+ useEffect(()=>{fetch("/api/woodpay/markup",{cache:"no-store"}).then(r=>r.json()).then(b=>{if(b&&b.rules)setRules(cur=>({...cur,...b.rules}));}).catch(()=>{});},[]);
+
  useEffect(()=>{
   if(kind!=="electricity"&&kind!=="exam")return;
   const catalogueKind=kind==="electricity"?"electricity":"education";
   let cancelled=false;
   setUtilityLoading(true);setUtilityError("");setUtilityProviders([]);
-  fetch("/api/pairgate/catalogue?kind="+catalogueKind,{cache:"no-store"})
+  fetch("/api/woodpay/catalogue?kind="+catalogueKind,{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load providers.");return body;})
    .then(body=>{if(!cancelled)setUtilityProviders(Array.isArray(body.providers)?body.providers:[]);})
    .catch(err=>{if(!cancelled)setUtilityError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -91,7 +95,7 @@ export default function RequestService(){
   if(kind!=="datapin"||!form.network)return;
   let cancelled=false;
   setEpinLoading(true);setEpinError("");setEpinDenominations([]);
-  fetch("/api/pairgate/catalogue?kind=epin&provider="+encodeURIComponent(form.network),{cache:"no-store"})
+  fetch("/api/woodpay/catalogue?kind=epin&provider="+encodeURIComponent(form.network),{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load recharge card PIN denominations.");return body;})
    .then(body=>{if(!cancelled)setEpinDenominations(Array.isArray(body.denominations)?body.denominations:[]);})
    .catch(err=>{if(!cancelled)setEpinError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -104,7 +108,7 @@ export default function RequestService(){
   const provider=params.slug==="dstv-subscription"?"dstv":params.slug==="gotv-subscription"?"gotv":"startimes";
   let cancelled=false;
   setCableLoading(true);setCableError("");setCablePlans([]);
-  fetch("/api/pairgate/catalogue?kind=cable&provider="+provider,{cache:"no-store"})
+  fetch("/api/woodpay/catalogue?kind=cable&provider="+provider,{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load TV packages.");return body;})
    .then(body=>{if(!cancelled)setCablePlans(Array.isArray(body.plans)?body.plans:[]);})
    .catch(err=>{if(!cancelled)setCableError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -117,7 +121,7 @@ export default function RequestService(){
   let cancelled=false;
   setPlansLoading(true);setPlansError("");setDataPlans([]);
   setForm(current=>({...current,provider_plan_id:"",provider_amount:"",plan_name:"",plan_validity:""}));
-  fetch("/api/pairgate/data-plans?network="+encodeURIComponent(form.network||"mtn"),{cache:"no-store"})
+  fetch("/api/woodpay/data-plans?network="+encodeURIComponent(form.network||"mtn"),{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load data plans.");return body;})
    .then(body=>{if(!cancelled)setDataPlans(Array.isArray(body.plans)?body.plans:[]);})
    .catch(err=>{if(!cancelled)setPlansError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -128,7 +132,8 @@ export default function RequestService(){
 
 
   const providerAmount=kind==="exam"?examUnitPrice*Number(form.quantity||1):kind==="datapin"?Number(form.denomination||0)*Number(form.quantity||1):["airtime","electricity"].includes(kind)?Number(form.amount||0):Number(form.provider_amount||0);
- const serviceFee=Math.ceil(providerAmount*(FEE_RATE[kind]||0)/100);
+ const rule=rules[kind]||{mode:"percent" as const,value:0};
+ const serviceFee=providerAmount>0?(rule.mode==="flat"?Math.max(0,Math.round(rule.value)):Math.ceil(providerAmount*rule.value/100)):0;
  const total=providerAmount+serviceFee;
 
  function renderField(f:ServiceField){
@@ -168,7 +173,7 @@ export default function RequestService(){
    const missing=fields.find(f=>{
     const normalizedKey=String(f.field_key||"").toLowerCase().replace(/[\\s-]+/g,"_");
     const normalizedLabel=String(f.label||"").toLowerCase();
-    // Examination Pins uses the visible Pairgate selector above. Ignore every
+    // Examination Pins uses the visible provider selector above. Ignore every
     // legacy exam-provider field by key or label, even if old DB metadata uses
     // a different key and regardless of the derived service kind.
     if(params.slug==="data-pins"&&(/plan.?id/i.test(normalizedKey)||/plan.?id/i.test(normalizedLabel)))return false;
@@ -220,7 +225,7 @@ export default function RequestService(){
    router.push(orderAmount>0?"/dashboard/orders?new="+created.id+"&pay=1":"/dashboard/orders?new="+created.id);
   }catch(err){
    const message=err instanceof Error?err.message:"Could not submit this request.";
-   setError(/PAIRGATE_|Cloudflare|Just a moment|challenge-platform|<\s*!doctype|<\s*html|fetch failed|timed?\s*out|ECONN|ENOTFOUND/i.test(message)||message.length>240?SERVICE_UNAVAILABLE_MESSAGE:message);
+   setError(/WOODPAY_|Cloudflare|Just a moment|challenge-platform|<\s*!doctype|<\s*html|fetch failed|timed?\s*out|ECONN|ENOTFOUND/i.test(message)||message.length>240?SERVICE_UNAVAILABLE_MESSAGE:message);
    setLoading(false);
   }
  }
@@ -259,7 +264,7 @@ export default function RequestService(){
      <select value={form.exam_type||""} onChange={e=>set("exam_type",e.target.value)} required disabled={utilityLoading||utilityProviders.length===0} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">{utilityLoading?"Loading exam providers…":utilityError?"Service temporarily unavailable":"Choose exam body"}</option>{utilityProviders.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
     </label>
     <label className="block text-sm font-bold">Quantity *<input type="number" min="1" max="10" step="1" value={form.quantity||"1"} onChange={e=>set("quantity",e.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
-    {utilityError||(!utilityLoading&&utilityProviders.length===0)?<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>:examPriceConfigured?<p className="text-sm text-slate-600">Price per PIN: ₦{examUnitPrice.toLocaleString()}. PINs are delivered after Pairgate completes processing.</p>:<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Choose WAEC, NECO or NABTEB to see the PIN price.</p>}
+    {utilityError||(!utilityLoading&&utilityProviders.length===0)?<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>:examPriceConfigured?<p className="text-sm text-slate-600">Price per PIN: ₦{examUnitPrice.toLocaleString()}. PINs are delivered after the provider completes processing.</p>:<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Choose WAEC, NECO or NABTEB to see the PIN price.</p>}
     {utilityError&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{utilityError}</p>}
    </div>}
    {kind==="datapin"&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
