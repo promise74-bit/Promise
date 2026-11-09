@@ -1,0 +1,8 @@
+# Netlify build settings for the Next.js app.
+# Netlify's Next.js runtime is detected automatically; no redirects here,
+# because the app's own routes (/login, /dashboard, /services/...) must be served.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"

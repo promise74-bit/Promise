@@ -145,7 +145,7 @@ function render(){
   const t=q.value.trim().toLowerCase();
   grid.innerHTML=SERVICES.filter(s=>(cat==='All'||s.category===cat)&&(!t||(s.title+s.description+s.category).toLowerCase().includes(t))).map(s=>{
     const msg=encodeURIComponent('Hello, I want to enquire about: '+s.title);
-    return '<div class="card"><div class="ic">'+s.icon+'</div><div class="cat">'+esc(s.category)+'</div><h3>'+esc(s.title)+'</h3><p>'+esc(s.description)+'</p><ul>'+s.details.map(d=>'<li>'+esc(d)+'</li>').join('')+'</ul><a class="btn" target="_blank" rel="noopener" href="https://wa.me/2347058391188?text='+msg+'">Enquire on WhatsApp</a></div>';
+    return '<div class="card"><div class="ic">'+s.icon+'</div><div class="cat">'+esc(s.category)+'</div><h3>'+esc(s.title)+'</h3><p>'+esc(s.description)+'</p><ul>'+s.details.map(d=>'<li>'+esc(d)+'</li>').join('')+'</ul><div class="row"><a class="btn ghost" href="/services/'+encodeURIComponent(s.slug)+'">View details</a><a class="btn" target="_blank" rel="noopener" href="https://wa.me/2347058391188?text='+msg+'">Enquire on WhatsApp</a></div></div>';
   }).join('')||'<p>No services match your search.</p>';
 }
 filters.innerHTML=cats.map(c=>'<button class="chip'+(c==='All'?' on':'')+'">'+esc(c)+'</button>').join('');
