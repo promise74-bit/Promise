@@ -15,8 +15,12 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   async function submit(e:React.FormEvent){
     e.preventDefault(); setLoading(true); setError(''); setMessage('');
     if(mode==='register'){
-      const {error}=await supabase.auth.signUp({email,password,options:{data:{full_name:fullName,phone}}});
-      if(error) setError(error.message); else { setMessage('Account created. If email confirmation is enabled, check your inbox before logging in.'); router.push('/login'); }
+      try{
+        const res=await fetch('/api/auth/register',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({fullName,phone,email,password})});
+        const j=await res.json().catch(()=>({}));
+        if(!res.ok) setError(j.error||'Could not create account.');
+        else setMessage(j.emailSent===false?'Account created, but we could not send the welcome email. Use "Forgot password" to get a link.':'Account created! Check your inbox for a welcome email and tap the button to confirm your email.');
+      }catch{ setError('Network error. Please try again.'); }
     } else {
       const {error}=await supabase.auth.signInWithPassword({email,password});
       if(error) setError(error.message);

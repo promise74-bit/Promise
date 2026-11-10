@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fulfillOrder } from '@/lib/woodpay';
 import { checkPaystackAmount } from '@/lib/paystack';
+import { sendOrderEmail } from '@/lib/order-emails';
 
 export async function POST(request: Request) {
   try {
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
       });
     }
 
+    await sendOrderEmail(payment.order_id, 'paid', request);
     return NextResponse.json({ received: true });
   } catch {
     return new NextResponse('Invalid webhook payload', { status: 400 });

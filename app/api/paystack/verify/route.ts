@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fulfillOrder } from '@/lib/woodpay';
 import { customerSafeError } from '@/lib/service-errors';
+import { sendOrderEmail } from '@/lib/order-emails';
 
 function diagnose(result: any, expectedAmount: number, expectedCurrency: string) {
   const gatewayStatus = String(result?.data?.status || '').toLowerCase();
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
 
     const { data: orderOwner } = await admin.from('orders').select('customer_id,reference').eq('id', payment.order_id).maybeSingle();
     if (orderOwner?.customer_id) await admin.from('notifications').insert({ user_id: orderOwner.customer_id, title: 'Payment confirmed', message: 'Payment for order ' + orderOwner.reference + ' has been confirmed. Provider fulfillment status: ' + fulfillment?.status + '.' });
+    await sendOrderEmail(payment.order_id, 'paid', request);
     return NextResponse.json({ paid: true, code: 'verified', message: 'Payment verified successfully. Fulfillment status: ' + fulfillment?.status + '.', fulfillment });
   } catch (error) {
     console.error('Paystack verification unexpected error:', error);

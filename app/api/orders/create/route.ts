@@ -4,6 +4,7 @@ import {createAdminClient} from "@/lib/supabase/admin";
 import {getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
 import {customerSafeError} from "@/lib/service-errors";
+import {sendOrderEmail} from "@/lib/order-emails";
 
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
 const clean=(v:unknown)=>String(v??"").trim();
@@ -128,6 +129,7 @@ export async function POST(request:Request){
    return NextResponse.json({error:"The order price could not be saved correctly. Please try again or contact support."},{status:500});
   }
 
+  await sendOrderEmail(order.id,"received",request);
   return NextResponse.json({id:order.id,amount:Number(order.amount),quoteRequired:requiresQuote});
  }catch(error){
   console.error("Create service order failed:", error);
