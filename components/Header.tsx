@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {ChevronDown, MessageCircle} from 'lucide-react';
 import {createClient} from '@/lib/supabase/server';
 
-const LOGO='https://user24606.cn.imgto.link/public/20260925/1003106192.avif';
+const LOGO='/logo.png';
 
 export default async function Header(){
   const supabase=await createClient();

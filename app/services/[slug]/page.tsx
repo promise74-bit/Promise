@@ -12,7 +12,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
   const {data:s}=await supabase.from('services').select('title,description').eq('slug',slug).eq('active',true).maybeSingle();
   if(!s)return {title:'Service not found',robots:{index:false,follow:false}};
   const desc=(s.description||'').replace(/\s+/g,' ').trim().slice(0,155);
-  return {title:s.title,description:desc||`${s.title} from Promise Computer Research in Ekpoma, Edo State.`,alternates:{canonical:`/services/${slug}`},openGraph:{title:s.title,description:desc,url:`/services/${slug}`,type:'website',siteName:'Promise Computer Research',locale:'en_NG',images:[{url:'/og-image.png',width:1200,height:630}]},twitter:{card:'summary_large_image',title:s.title,description:desc,images:['/og-image.png']}};
+  return {title:s.title,description:desc||`${s.title} from Promise Computer Research in Ekpoma, Edo State.`,alternates:{canonical:`/services/${slug}`},openGraph:{title:s.title,description:desc,url:`/services/${slug}`,type:'website',siteName:'Promise Computer Research',locale:'en_NG',images:[{url:'/og-image.jpg',width:1200,height:630}]},twitter:{card:'summary_large_image',title:s.title,description:desc,images:['/og-image.jpg']}};
 }
 
 
