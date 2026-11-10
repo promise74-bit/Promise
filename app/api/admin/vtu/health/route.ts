@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { woodpayConfigured, woodpayWalletBalance, woodpayProbeDirect } from '@/lib/woodpay';
+import { woodpayConfigured, woodpayWalletBalance, woodpayEndpoint } from '@/lib/woodpay';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +12,7 @@ export async function GET() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (profile?.role !== 'admin') return NextResponse.json({ ok: false, error: 'Admin access required.' }, { status: 403 });
 
-    const baseUrl = (process.env.WOODPAY_BASE_URL || 'https://woodpay.com.ng/api/v1').replace(/\/+$/, '') + '/';
-    const result: Record<string, unknown> = { ok: true, configured: woodpayConfigured(), provider: 'WoodPay', baseUrl, endpoint: baseUrl + 'balance' };
+    const result: Record<string, unknown> = { ok: true, configured: woodpayConfigured(), provider: 'WoodPay', endpoint: woodpayEndpoint('balance') };
     if (!woodpayConfigured()) return NextResponse.json({ ...result, providerReachable: false, providerError: 'WOODPAY_API_KEY is missing on the server.' });
     try {
       const b = await woodpayWalletBalance();
@@ -23,7 +22,6 @@ export async function GET() {
       result.finalUrl = b.finalUrl;
       if (!b.ok) result.providerBody = String(b.raw || '').replace(/\s+/g, ' ').slice(0, 200);
       if (b.ok) result.walletBalance = b.balance;
-      if (!b.ok) { const d = await woodpayProbeDirect(); result.direct = { httpStatus: d.httpStatus, ok: d.ok, reply: d.raw, url: d.url }; }
       else result.providerError = 'WoodPay rejected the request (HTTP ' + b.httpStatus + ').';
     } catch (error) {
       result.providerReachable = false;

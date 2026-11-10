@@ -45,7 +45,8 @@ Airtime, mobile data, cable TV and electricity are delivered through the WoodPay
 Environment variables (server-side only, never `NEXT_PUBLIC_`):
 
 - `WOODPAY_API_KEY` — your WoodPay API key (WoodPay app → Services → Vendor & API).
-- `WOODPAY_BASE_URL` — optional; defaults to `https://woodpay.com.ng/api/v1`.
+- `WOODPAY_BASE_URL` — optional; only its host is used. Defaults to `https://woodpay.com.ng/api/v1`.
+- `WOODPAY_ENDPOINT_URL` — optional; defaults to `https://woodpay.com.ng/.netlify/functions/vendor-api`. Requests go straight to this function with `?action=<name>`, because WoodPay's `/api/v1/<action>` rewrite returned "Unknown endpoint" for server-to-server calls.
 
 **Markup:** customers pay the WoodPay price plus the markup you set in Admin → Markup (percent or flat, per service). Run `supabase/migrations/20261110120000_woodpay_markup.sql` once; it seeds the previous rates (3% airtime, 5% data/cable/electricity).
 

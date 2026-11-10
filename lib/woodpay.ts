@@ -5,16 +5,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { customerSafeError } from "@/lib/service-errors";
 
 const BASE_URL = (process.env.WOODPAY_BASE_URL || "https://woodpay.com.ng/api/v1").replace(/\/+$/, "");
+// WoodPay's pretty /api/v1/<action> rewrite does not pass the action through for server-to-server calls
+// (it answered "Unknown endpoint" for a valid balance request), so we call the vendor function directly.
+// Override with WOODPAY_ENDPOINT_URL if WoodPay ever moves it.
+const ENDPOINT = (process.env.WOODPAY_ENDPOINT_URL || new URL(BASE_URL).origin + "/.netlify/functions/vendor-api").replace(/\/+$/, "");
+export const woodpayEndpoint = (action: string) => ENDPOINT + "?action=" + action;
 const API_KEY = (process.env.WOODPAY_API_KEY || "").trim();
 const clean = (v: unknown) => String(v ?? "").trim();
 export const woodpayConfigured = () => Boolean(API_KEY);
 
 export async function woodpayCall(action: string, method: "GET" | "POST" = "GET", params?: Record<string, unknown>) {
   if (!API_KEY) throw new Error("WOODPAY_NOT_CONFIGURED: Set WOODPAY_API_KEY on the server.");
-  const url = new URL(BASE_URL + "/" + action);
+  const url = new URL(ENDPOINT);
   const init: RequestInit = { method, headers: { "x-api-key": API_KEY, Accept: "application/json", ...(method === "POST" ? { "Content-Type": "application/json" } : {}) }, cache: "no-store", signal: AbortSignal.timeout(20000) };
   if (method === "GET") for (const [k, v] of Object.entries(params || {})) { if (v !== undefined && clean(v)) url.searchParams.set(k, String(v)); }
   else init.body = JSON.stringify(params || {});
+  url.searchParams.set("action", action);
   let res: Response;
   try { res = await fetch(url, init); }
   catch (e) { throw new Error("WOODPAY_NETWORK_AMBIGUOUS: " + (e instanceof Error ? e.message : "Network error")); }
@@ -53,20 +59,6 @@ export async function woodpayVerifyCable(provider: string, smartcard: string) {
 export async function woodpayVerifyElectricity(disco: string, meterNumber: string, meterType: unknown) {
   const { httpStatus, body } = await woodpayCall("electricity_verify", "POST", { disco, meter_number: meterNumber, meter_type: meterTypeName(meterType) });
   return httpStatus === 200 && body?.ok ? { ok: true, customerName: clean(body.customer_name) } : { ok: false, customerName: "", error: clean(body?.error) };
-}
-// Diagnostic only: calls WoodPay's function directly (bypassing the /api/v1 rewrite rule) so a failing
-// pretty URL can be compared with the real function. Never returns the API key.
-export async function woodpayProbeDirect() {
-  if (!API_KEY) return { httpStatus: 0, ok: false, raw: "WOODPAY_API_KEY is missing", url: "" };
-  const url = new URL(BASE_URL).origin + "/.netlify/functions/vendor-api?action=balance";
-  try {
-    const res = await fetch(url, { method: "GET", headers: { "x-api-key": API_KEY, Accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(20000) });
-    const raw = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
-    let ok = false; try { ok = res.status === 200 && JSON.parse(raw).ok === true; } catch { ok = false; }
-    return { httpStatus: res.status, ok, raw, url };
-  } catch (e) {
-    return { httpStatus: 0, ok: false, raw: e instanceof Error ? e.message : "Network error", url };
-  }
 }
 export async function woodpayWalletBalance() {
   const { httpStatus, body, raw, finalUrl } = await woodpayCall("balance", "GET");
