@@ -25,6 +25,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unknown catalogue type." }, { status: 400 });
   } catch (error) {
     console.error("WoodPay catalogue request failed:", error);
-    return NextResponse.json({ error: SERVICE_UNAVAILABLE_MESSAGE }, { status: 503 });
+    return NextResponse.json({ error: SERVICE_UNAVAILABLE_MESSAGE, detail: String(error instanceof Error ? error.message : error).slice(0, 160) }, { status: 503 });
   }
 }

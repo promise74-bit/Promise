@@ -30,6 +30,11 @@ export async function POST(request:Request){
   let verifiedFormData:Record<string,any>={...formData};
 
   const rules=await getMarkupRules(admin);
+  if(String(service.category||"").trim().toUpperCase()==="JAMB"&&slug!=="jamb-services"&&finalAmount>0){
+   const fee=feeFor(rules.jamb,finalAmount);
+   verifiedFormData={...verifiedFormData,list_price:String(finalAmount),service_fee:String(fee),service_fee_rate:ruleLabel(rules.jamb)};
+   finalAmount=finalAmount+fee;
+  }
   if(slug==="airtime-recharge"){
    const network=clean(formData.network||formData.network_id).toLowerCase();
    const phone=clean(formData.phone_number||formData.mobile_number||formData.phone).replace(/\D/g,"");

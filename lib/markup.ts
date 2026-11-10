@@ -1,12 +1,13 @@
 // The owner's own markup, edited in Admin → Markup. Applied on top of the WoodPay price.
 // Stored in public.markup_settings. If a row is missing, the old site rates are used so nothing changes by surprise.
 export type MarkupRule = { mode: "percent" | "flat"; value: number };
-export const MARKUP_CATEGORIES = ["airtime", "data", "cable", "electricity"] as const;
+export const MARKUP_CATEGORIES = ["airtime", "data", "cable", "electricity", "jamb"] as const;
 export type MarkupCategory = (typeof MARKUP_CATEGORIES)[number];
-export const MARKUP_LABELS: Record<MarkupCategory, string> = { airtime: "Airtime", data: "Data", cable: "Cable TV", electricity: "Electricity" };
+export const MARKUP_LABELS: Record<MarkupCategory, string> = { airtime: "Airtime", data: "Data", cable: "Cable TV", electricity: "Electricity", jamb: "JAMB services (added to the list price)" };
 export const DEFAULT_MARKUP: Record<MarkupCategory, MarkupRule> = {
   airtime: { mode: "percent", value: 3 }, data: { mode: "percent", value: 5 },
   cable: { mode: "percent", value: 5 }, electricity: { mode: "percent", value: 5 },
+  jamb: { mode: "flat", value: 200 },
 };
 
 export function feeFor(rule: MarkupRule, amount: number): number {

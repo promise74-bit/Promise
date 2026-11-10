@@ -11,6 +11,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ plans }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("WoodPay data-plan catalogue failed:", error);
-    return NextResponse.json({ error: SERVICE_UNAVAILABLE_MESSAGE, plans: [] }, { status: 503 });
+    return NextResponse.json({ error: SERVICE_UNAVAILABLE_MESSAGE, plans: [], detail: String(error instanceof Error ? error.message : error).slice(0, 160) }, { status: 503 });
   }
 }

@@ -11,7 +11,7 @@ type EpinDenomination={value:number;label:string};
 
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
 type MarkupRule={mode:"percent"|"flat";value:number};
-const DEFAULT_RULES:Record<string,MarkupRule>={airtime:{mode:"percent",value:3},data:{mode:"percent",value:5},cable:{mode:"percent",value:5},electricity:{mode:"percent",value:5},exam:{mode:"percent",value:5},datapin:{mode:"percent",value:5}};
+const DEFAULT_RULES:Record<string,MarkupRule>={airtime:{mode:"percent",value:3},data:{mode:"percent",value:5},cable:{mode:"percent",value:5},electricity:{mode:"percent",value:5},exam:{mode:"percent",value:5},datapin:{mode:"percent",value:5},jamb:{mode:"flat",value:200}};
 const EXAM_PIN_PRICES:Record<string,number>={waec:5800,neco:2200,nabt:1500};
 const SERVICE_UNAVAILABLE_MESSAGE="This service is not currently available. Please try again later.";
 function canonicalExamProvider(value:unknown){
@@ -242,7 +242,7 @@ export default function RequestService(){
    {params.slug==="jamb-services"&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
     <label className="block text-sm font-bold">JAMB service needed *
      <select required value={form.jamb_service_slug||""} onChange={e=>set("jamb_service_slug",e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <option value="">Choose a service</option>{jambServices.map(item=><option key={item.slug} value={item.slug}>{item.title} — ₦{Number(item.price||0).toLocaleString()}</option>)}
+      <option value="">Choose a service</option>{jambServices.map(item=><option key={item.slug} value={item.slug}>{item.title} — ₦{(Number(item.price||0)+(rules.jamb.mode==="flat"?Math.round(rules.jamb.value):Math.ceil(Number(item.price||0)*rules.jamb.value/100))).toLocaleString()}</option>)}
      </select>
     </label>
     <label className="block text-sm font-bold">JAMB registration number (if available)<input value={form.jamb_registration_number||""} onChange={e=>set("jamb_registration_number",e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
