@@ -45,6 +45,8 @@ export default function WoodPayHealth() {
           </div>
           {result.walletBalance != null && <p className="mt-3 text-sm font-bold">WoodPay wallet balance: ₦{Number(result.walletBalance).toLocaleString()}</p>}
           <p className="mt-3 text-xs text-slate-500">Endpoint tested: {result.endpoint || '—'}</p>
+          {result.finalUrl && result.finalUrl !== result.endpoint && <p className="mt-3 text-xs text-slate-500">Redirected to: {result.finalUrl}</p>}
+          {result.providerBody && <p className="mt-3 break-words rounded-xl bg-white p-3 text-xs text-slate-700">WoodPay replied: {result.providerBody}</p>}
           {result.providerError && <p className="mt-3 rounded-xl bg-white p-3 text-xs text-red-700">Provider connection failed. Check server logs for technical details.</p>}
           {result.providerResponse !== undefined && <p className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-700">Provider connection successful. Sensitive response details are hidden.</p>}
         </div>

@@ -20,7 +20,7 @@ export async function woodpayCall(action: string, method: "GET" | "POST" = "GET"
   catch (e) { throw new Error("WOODPAY_NETWORK_AMBIGUOUS: " + (e instanceof Error ? e.message : "Network error")); }
   const raw = await res.text();
   let body: any = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { body = {}; }
-  return { httpStatus: res.status, body };
+  return { httpStatus: res.status, body, raw: raw.slice(0, 300), finalUrl: res.url };
 }
 async function catalogue(action: string, params?: Record<string, unknown>) {
   const { httpStatus, body } = await woodpayCall(action, "GET", params);
@@ -55,8 +55,8 @@ export async function woodpayVerifyElectricity(disco: string, meterNumber: strin
   return httpStatus === 200 && body?.ok ? { ok: true, customerName: clean(body.customer_name) } : { ok: false, customerName: "", error: clean(body?.error) };
 }
 export async function woodpayWalletBalance() {
-  const { httpStatus, body } = await woodpayCall("balance", "GET");
-  return { httpStatus, ok: httpStatus === 200 && body?.ok === true, balance: Number(body?.balance) };
+  const { httpStatus, body, raw, finalUrl } = await woodpayCall("balance", "GET");
+  return { httpStatus, ok: httpStatus === 200 && body?.ok === true, balance: Number(body?.balance), raw, finalUrl };
 }
 
 /* ------------------------------- fulfilment ------------------------------- */

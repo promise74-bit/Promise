@@ -20,6 +20,8 @@ export async function GET() {
       result.providerReachable = b.httpStatus !== 401 && b.httpStatus !== 403;
       result.httpStatus = b.httpStatus;
       result.providerOk = b.ok;
+      result.finalUrl = b.finalUrl;
+      if (!b.ok) result.providerBody = String(b.raw || '').replace(/\s+/g, ' ').slice(0, 200);
       if (b.ok) result.walletBalance = b.balance;
       else result.providerError = 'WoodPay rejected the request (HTTP ' + b.httpStatus + ').';
     } catch (error) {
