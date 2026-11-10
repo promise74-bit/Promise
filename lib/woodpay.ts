@@ -12,7 +12,7 @@ export const woodpayConfigured = () => Boolean(API_KEY);
 export async function woodpayCall(action: string, method: "GET" | "POST" = "GET", params?: Record<string, unknown>) {
   if (!API_KEY) throw new Error("WOODPAY_NOT_CONFIGURED: Set WOODPAY_API_KEY on the server.");
   const url = new URL(BASE_URL + "/" + action);
-  const init: RequestInit = { method, headers: { "x-api-key": API_KEY, Accept: "application/json", "Content-Type": "application/json" }, cache: "no-store", signal: AbortSignal.timeout(20000) };
+  const init: RequestInit = { method, headers: { "x-api-key": API_KEY, Accept: "application/json", ...(method === "POST" ? { "Content-Type": "application/json" } : {}) }, cache: "no-store", signal: AbortSignal.timeout(20000) };
   if (method === "GET") for (const [k, v] of Object.entries(params || {})) { if (v !== undefined && clean(v)) url.searchParams.set(k, String(v)); }
   else init.body = JSON.stringify(params || {});
   let res: Response;
