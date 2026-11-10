@@ -54,6 +54,20 @@ export async function woodpayVerifyElectricity(disco: string, meterNumber: strin
   const { httpStatus, body } = await woodpayCall("electricity_verify", "POST", { disco, meter_number: meterNumber, meter_type: meterTypeName(meterType) });
   return httpStatus === 200 && body?.ok ? { ok: true, customerName: clean(body.customer_name) } : { ok: false, customerName: "", error: clean(body?.error) };
 }
+// Diagnostic only: calls WoodPay's function directly (bypassing the /api/v1 rewrite rule) so a failing
+// pretty URL can be compared with the real function. Never returns the API key.
+export async function woodpayProbeDirect() {
+  if (!API_KEY) return { httpStatus: 0, ok: false, raw: "WOODPAY_API_KEY is missing", url: "" };
+  const url = new URL(BASE_URL).origin + "/.netlify/functions/vendor-api?action=balance";
+  try {
+    const res = await fetch(url, { method: "GET", headers: { "x-api-key": API_KEY, Accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(20000) });
+    const raw = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
+    let ok = false; try { ok = res.status === 200 && JSON.parse(raw).ok === true; } catch { ok = false; }
+    return { httpStatus: res.status, ok, raw, url };
+  } catch (e) {
+    return { httpStatus: 0, ok: false, raw: e instanceof Error ? e.message : "Network error", url };
+  }
+}
 export async function woodpayWalletBalance() {
   const { httpStatus, body, raw, finalUrl } = await woodpayCall("balance", "GET");
   return { httpStatus, ok: httpStatus === 200 && body?.ok === true, balance: Number(body?.balance), raw, finalUrl };

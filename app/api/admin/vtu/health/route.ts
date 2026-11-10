@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { woodpayConfigured, woodpayWalletBalance } from '@/lib/woodpay';
+import { woodpayConfigured, woodpayWalletBalance, woodpayProbeDirect } from '@/lib/woodpay';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,7 @@ export async function GET() {
       result.finalUrl = b.finalUrl;
       if (!b.ok) result.providerBody = String(b.raw || '').replace(/\s+/g, ' ').slice(0, 200);
       if (b.ok) result.walletBalance = b.balance;
+      if (!b.ok) { const d = await woodpayProbeDirect(); result.direct = { httpStatus: d.httpStatus, ok: d.ok, reply: d.raw, url: d.url }; }
       else result.providerError = 'WoodPay rejected the request (HTTP ' + b.httpStatus + ').';
     } catch (error) {
       result.providerReachable = false;
