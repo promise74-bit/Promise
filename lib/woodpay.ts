@@ -107,6 +107,7 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
   const b = r.body || {};
   const service = Array.isArray(order.services) ? order.services[0] : order.services;
   const status = String(b.status || "").toLowerCase();
+  if (status === "failed" || (r.httpStatus >= 400 && status !== "pending")) console.error("[woodpay] delivery not completed", JSON.stringify({ order: order.reference, kind, http: r.httpStatus, response: b }).slice(0, 1500));
   const token = clean(b.token);
   const notify = (title: string, message: string) => order.customer_id ? admin.from("notifications").insert({ user_id: order.customer_id, title, message }) : null;
 
