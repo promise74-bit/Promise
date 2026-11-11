@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect,useState} from "react";
+import {useEffect,useState,useRef} from "react";
 import {useParams,useRouter} from "next/navigation";
 import {createClient} from "@/lib/supabase/client";
 
@@ -148,19 +148,23 @@ export default function RequestService(){
  }
 
 
+ const submitting=useRef(false);
+ const idemKey=useRef(typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2,10));
  async function submit(e:React.FormEvent){
   e.preventDefault();
+  if(submitting.current)return;
+  submitting.current=true;
   setLoading(true);setError("");
-  if(kind==="data"&&!form.provider_plan_id){setError("Choose an available data plan first.");setLoading(false);return;}
+  if(kind==="data"&&!form.provider_plan_id){setError("Choose an available data plan first.");setLoading(false);submitting.current=false;return;}
   try{
    const supabase=createClient();const {data:{user}}=await supabase.auth.getUser();
-   if(!user){router.push("/login");return;}
+   if(!user){submitting.current=false;router.push("/login");return;}
    if(params.slug==="jamb-services"){
     const selected=jambServices.find(item=>item.slug===form.jamb_service_slug);
     if(!selected)throw new Error("Choose the JAMB service you need.");
     if(!String(form.full_name||"").trim()||!String(form.phone||"").trim()||!String(form.exam_year||"").trim())throw new Error("Provide your name, phone number and exam year.");
     const createOrder=await fetch("/api/orders/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      slug:selected.slug,
+      idempotency_key:idemKey.current,slug:selected.slug,
       customer_note:form.request_details||"",
       form_data:{...form,jamb_service_slug:selected.slug,jamb_service_title:selected.title,service_fulfilment:"manual_via_whatsapp_or_admin"}
     })});
@@ -219,12 +223,13 @@ export default function RequestService(){
    const {data:dbService}=await supabase.from("services").select("id,price,price_type,active").eq("slug",params.slug).eq("active",true).maybeSingle();
    if(!dbService)throw new Error("This service is no longer available.");
    const reference="PCR-"+Date.now().toString().slice(-10);
-   const createOrder=await fetch("/api/orders/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({slug:params.slug,amount:orderAmount,customer_note:orderForm.request_details||"",form_data:orderForm})});
+   const createOrder=await fetch("/api/orders/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({idempotency_key:idemKey.current,slug:params.slug,amount:orderAmount,customer_note:orderForm.request_details||"",form_data:orderForm})});
    const created=await createOrder.json();
    if(!createOrder.ok)throw new Error(created?.error||"Could not submit this request.");
    router.push(orderAmount>0?"/dashboard/orders?new="+created.id+"&pay=1":"/dashboard/orders?new="+created.id);
   }catch(err){
    const message=err instanceof Error?err.message:"Could not submit this request.";
+   submitting.current=false;
    setError(/WOODPAY_|Cloudflare|Just a moment|challenge-platform|<\s*!doctype|<\s*html|fetch failed|timed?\s*out|ECONN|ENOTFOUND/i.test(message)||message.length>240?SERVICE_UNAVAILABLE_MESSAGE:message);
    setLoading(false);
   }

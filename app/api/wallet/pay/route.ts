@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { afterWalletPayment } from '@/lib/wallet';
+import { checkPin } from '@/lib/pin';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'You must be logged in.' }, { status: 401 });
 
     const admin = createAdminClient();
+    const pin = await checkPin(admin, user.id, String(body.pin || ''));
+    if (!pin.ok) {
+      if (pin.code === 'NO_PIN') return NextResponse.json({ error: 'Create your payment PIN first.', code: 'NO_PIN' }, { status: 403 });
+      if (pin.code === 'LOCKED') return NextResponse.json({ error: `Too many wrong PINs. Try again in ${pin.minutes} minute(s).`, code: 'LOCKED' }, { status: 429 });
+      return NextResponse.json({ error: `Wrong PIN. ${pin.left} attempt(s) left.`, code: 'WRONG_PIN' }, { status: 403 });
+    }
     const { data, error } = await admin.rpc('wallet_pay_order', { p_order_id: orderId, p_user_id: user.id });
     if (error) {
       console.error('wallet_pay_order failed:', error.message);

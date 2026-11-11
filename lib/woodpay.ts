@@ -166,7 +166,10 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
 async function checkPending(admin: any, order: any, existing: any, kind: string) {
   try {
     const r = await woodpayCall("order", "GET", { reference: existing.request_id });
-    if (r.httpStatus === 404) { // never debited on WoodPay → safe to retry with a new reference
+    if (r.httpStatus === 404) {
+      // 404 can simply mean "the first attempt has not reached WoodPay yet" (the payment webhook and the verify page both deliver at once).
+      // Only treat it as "never sent" once the attempt is clearly stale; otherwise a second purchase would be submitted.
+      if (Date.now() - new Date(existing.created_at).getTime() < 180000) return { status: "pending", message: "Still processing." };
       await admin.from("provider_transactions").update({ status: "failed", provider_status: "not found at provider" }).eq("request_id", existing.request_id);
       return null;
     }
@@ -215,7 +218,7 @@ export async function fulfillOrder(orderId: string) {
   const base = requestId(order);
   const rid = existing ? base + "R" + Date.now().toString(36).toUpperCase() : base;
   const { error: insErr } = await admin.from("provider_transactions").insert({ order_id: order.id, provider: "woodpay", request_id: rid, service_id: product.kind, amount: product.amount, status: "pending", provider_status: "pending", request_data: product });
-  if (insErr) throw insErr;
+  if (insErr) { if ((insErr as any).code === "23505") return { status: "pending", message: "Still processing." }; throw insErr; } // another worker is already delivering this order
 
   const body: Record<string, unknown> =
     product.kind === "airtime" ? { network: product.network, phone: product.phone, amount: product.amount, reference: rid } :

@@ -17,11 +17,18 @@ export async function POST(request:Request){
   const slug=clean(body.slug);
   const formData=body.form_data&&typeof body.form_data==="object"?body.form_data:{};
   const customerNote=clean(body.customer_note);
+  const idemKey=clean(body.idempotency_key);
+  const hasIdem=/^[A-Za-z0-9-]{8,64}$/.test(idemKey);
   if(!slug)return NextResponse.json({error:"Service is required."},{status:400});
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return NextResponse.json({error:"You must be logged in."},{status:401});
   const admin=createAdminClient();
+  // Double-tap / retry protection: the same idempotency key returns the order that was already created.
+  if(hasIdem){
+   const {data:dup}=await admin.from("orders").select("id,amount").eq("customer_id",user.id).eq("form_data->>idempotency_key",idemKey).maybeSingle();
+   if(dup)return NextResponse.json({id:dup.id,amount:Number(dup.amount),quoteRequired:false,duplicate:true});
+  }
   const {data:service,error:serviceError}=await admin.from("services").select("id,slug,title,category,price,price_type,active").eq("slug",slug).eq("active",true).maybeSingle();
   if(serviceError)throw serviceError;
   if(!service)return NextResponse.json({error:"This service is no longer available."},{status:404});
@@ -117,8 +124,12 @@ export async function POST(request:Request){
   const reference="PCR-"+Date.now().toString().slice(-10);
   const {data:order,error:insertError}=await admin.from("orders").insert({
    reference,customer_id:user.id,service_id:service.id,status:"pending",payment_status:"unpaid",
-   amount:finalAmount,customer_note:customerNote||null,form_data:verifiedFormData
+   amount:finalAmount,customer_note:customerNote||null,form_data:hasIdem?{...verifiedFormData,idempotency_key:idemKey}:verifiedFormData
   }).select("id,amount").single();
+  if(insertError&&hasIdem&&(insertError as any).code==="23505"){
+   const {data:dup}=await admin.from("orders").select("id,amount").eq("customer_id",user.id).eq("form_data->>idempotency_key",idemKey).maybeSingle();
+   if(dup)return NextResponse.json({id:dup.id,amount:Number(dup.amount),quoteRequired:false,duplicate:true});
+  }
   if(insertError)throw insertError;
 
   // Server-priced services must persist exactly the amount calculated above.

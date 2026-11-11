@@ -5,6 +5,7 @@ import { MAX_FUNDING, MIN_FUNDING } from '@/lib/wallet';
 import { getWalletAccount } from '@/lib/wallet-transfer';
 import FundWalletForm from './FundWalletForm';
 import BankTransferCard from './BankTransferCard';
+import PinSettings from './PinSettings';
 
 export const metadata = { title: 'Wallet' };
 export const dynamic = 'force-dynamic';
@@ -72,6 +73,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         </section>
         <BankTransferCard account={account} />
       </div>
+
+      <PinSettings />
 
       <section id="history" className="scroll-mt-20 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
         <h2 className="text-xl font-black">Transactions</h2>
