@@ -12,3 +12,13 @@ a { text-decoration:none; }
 .grid-pattern { background-image:linear-gradient(rgba(7,87,213,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(7,87,213,.055) 1px,transparent 1px); background-size:32px 32px; }
 .shadow-soft { box-shadow:0 18px 60px rgba(8,53,120,.09); }
 @media(max-width:640px){ .section{padding:60px 0;} .container{width:min(100% - 24px,1160px);} }
+
+/* Signed-in app layout: page content fills the area next to the sidebar. */
+.app-main .container { width: 100%; max-width: none; }
+.app-main > main { min-height: 0; background: transparent; padding: 0; }
+.app-main > main > .container { padding: 0; }
+
+/* Signed-in app: pages were written for the full-width website; inside the sidebar layout they should fill the content column. */
+.app-main .container { width: 100%; max-width: none; margin-inline: 0; }
+.app-main .section { padding: 28px 0; }
+.app-main main { background: transparent; }
