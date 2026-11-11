@@ -4,13 +4,13 @@ import {createAdminClient} from "@/lib/supabase/admin";
 import {getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
 import {examUnitPrices} from "@/lib/exam-prices";
+import {JAMB_SERVICE_PRICES} from "@/lib/jamb-prices";
 import {customerSafeError} from "@/lib/service-errors";
 import {sendOrderEmail} from "@/lib/order-emails";
 
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
 const clean=(v:unknown)=>String(v??"").trim();
 const serviceFee=(amount:number,rate:number)=>Math.ceil(amount*rate/100);
-const JAMB_SERVICE_PRICES:Record<string,number>={"jamb-admission-letter-portal":3000,"jamb-admission-letter-no-portal":4000,"jamb-original-result-portal":2500,"jamb-original-result-no-portal":3500,"jamb-original-result-printing":2500,"jamb-admission-letter-printing":3000,"jamb-admission-status-checking":1000,"jamb-reprinting":1000,"jamb-olevel-screenshot":1000,"jamb-email-phone-screenshot":1000,"jamb-profile-code-retrieval":1000,"jamb-registration-number-retrieval":1000,"jamb-indemnity-form":1000};
 export async function POST(request:Request){
  try{
   const body=await request.json();

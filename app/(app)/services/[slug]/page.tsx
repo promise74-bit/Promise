@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {getServicePresentation} from '@/lib/service-presentation';
 import {createAdminClient} from '@/lib/supabase/admin';
 import {getMarkupRules,feeFor} from '@/lib/markup';
+import {JAMB_SERVICE_PRICES} from '@/lib/jamb-prices';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export default async function ServicePage({params}:{params:Promise<{slug:string}
   if(!s)return notFound();
   const presentation=getServicePresentation(s.slug,s.category);
   const isVTU=new Set(['airtime-recharge','data-subscription','dstv-subscription','gotv-subscription','startimes-subscription','electricity-bill','exam-pins','data-pins']).has(s.slug);
-  const jambServicePrices:Record<string,number>={'jamb-admission-letter-portal':3000,'jamb-admission-letter-no-portal':4000,'jamb-original-result-portal':2500,'jamb-original-result-no-portal':3500,'jamb-original-result-printing':2500,'jamb-admission-letter-printing':3000,'jamb-admission-status-checking':1000,'jamb-reprinting':1000,'jamb-olevel-screenshot':1000,'jamb-email-phone-screenshot':1000,'jamb-profile-code-retrieval':1000,'jamb-registration-number-retrieval':1000,'jamb-indemnity-form':1000};
+  const jambServicePrices:Record<string,number>=JAMB_SERVICE_PRICES;
   const isJambService=String(s.category||'').trim().toUpperCase()==='JAMB' && s.slug!=='jamb-services';
   const isFixed=(s.price_type==='fixed' && s.price!=null)||jambServicePrices[s.slug]!=null||isJambService;
   const jambBase=jambServicePrices[s.slug]??Number(s.price||1000);
