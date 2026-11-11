@@ -3,6 +3,7 @@
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { customerSafeError } from "@/lib/service-errors";
+import { refundOrder } from "@/lib/refunds";
 
 const BASE_URL = (process.env.WOODPAY_BASE_URL || "https://woodpay.com.ng/api/v1").replace(/\/+$/, "");
 // WoodPay's pretty /api/v1/<action> rewrite does not pass the action through for server-to-server calls
@@ -134,18 +135,29 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
   }
   if (status === "failed") {
     await admin.from("provider_transactions").update({ status: "failed", provider_status: ("failed (wallet refunded)" + (clean(b.reason) ? ": " + clean(b.reason).slice(0, 120) : "")), response: b }).eq("request_id", rid);
+    const refund = await refundOrder(admin, order, clean(b.reason));
+    if (refund.ok) return { status: "failed", refunded: true, message: refund.message };
     await admin.from("orders").update({ status: "needs_information", admin_note: "Your payment was received. We could not complete delivery automatically and our team is reviewing it." }).eq("id", order.id);
     await notify("Order needs attention", "Your order " + order.reference + " could not be delivered yet. We are looking into it.");
-    return { status: "failed", message: "Delivery failed and was refunded." };
+    return { status: "failed", message: "Delivery failed." };
   }
   if (status === "pending" || r.httpStatus === 202) {
     await admin.from("provider_transactions").update({ status: "pending", provider_status: "pending", response: b }).eq("request_id", rid);
     await admin.from("orders").update({ status: "processing", admin_note: "Your order is being processed. This can take a few minutes." }).eq("id", order.id);
     return { status: "pending", message: "Still processing." };
   }
-  // Rejected before any charge (bad input, wallet too low, service off): safe to retry later.
+  // Rejected before any charge (bad input, wallet too low, service off) → definite failure → refund the customer.
+  // A gateway/server error (5xx other than "unavailable") is an UNKNOWN outcome: never refund, keep it for a status check.
   const low = r.httpStatus === 402;
+  const definite = (r.httpStatus >= 400 && r.httpStatus < 500) || (r.httpStatus === 503 && b.ok === false);
+  if (!definite) {
+    await admin.from("provider_transactions").update({ status: "pending", provider_status: "unknown (HTTP " + r.httpStatus + ") — check before retrying", response: { ...b, http: r.httpStatus } }).eq("request_id", rid);
+    await admin.from("orders").update({ status: "processing", admin_note: "Your order is being processed. We are confirming the result." }).eq("id", order.id);
+    return { status: "pending", message: "Still processing." };
+  }
   await admin.from("provider_transactions").update({ status: "failed", provider_status: low ? "insufficient provider wallet" : "rejected: " + clean(b.error).slice(0, 120), response: { ...b, http: r.httpStatus } }).eq("request_id", rid);
+  const refund = await refundOrder(admin, order, clean(b.error));
+  if (refund.ok) return { status: "failed", refunded: true, message: refund.message };
   await admin.from("orders").update({ status: "needs_information", admin_note: "Your payment was received. We could not complete delivery automatically and our team is reviewing it." }).eq("id", order.id);
   await notify("Payment received — order needs attention", "Your payment was successful, but delivery needs a manual check. We are reviewing order " + order.reference + ".");
   return { status: "failed", message: customerSafeError(clean(b.error)) };
