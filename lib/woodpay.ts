@@ -126,8 +126,8 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
     return { status: "successful", result: b };
   }
   if (status === "failed") {
-    await admin.from("provider_transactions").update({ status: "failed", provider_status: "failed (wallet refunded)", response: b }).eq("request_id", rid);
-    await admin.from("orders").update({ status: "needs_information", admin_note: "WoodPay could not deliver this order and refunded your WoodPay wallet. Check the cause, then retry delivery." }).eq("id", order.id);
+    await admin.from("provider_transactions").update({ status: "failed", provider_status: ("failed (wallet refunded)" + (clean(b.reason) ? ": " + clean(b.reason).slice(0, 120) : "")), response: b }).eq("request_id", rid);
+    await admin.from("orders").update({ status: "needs_information", admin_note: "WoodPay could not deliver this order and refunded your WoodPay wallet." + (clean(b.reason) ? " Reason: " + clean(b.reason).slice(0, 200) + "." : "") + " Check the cause, then retry delivery." }).eq("id", order.id);
     await notify("Order needs attention", "Your order " + order.reference + " could not be delivered yet. We are looking into it.");
     return { status: "failed", message: "Delivery failed and was refunded." };
   }
