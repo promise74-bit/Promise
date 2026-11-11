@@ -180,5 +180,10 @@ document.getElementById('menu').onclick=()=>document.getElementById('nav').class
 document.getElementById('nav').onclick=e=>{if(e.target.tagName==='A')e.currentTarget.classList.remove('open')};
 document.getElementById('yr').textContent=new Date().getFullYear();
 </script>
+<script>
+/* Wake the server as soon as someone lands, and keep it awake while the page is open. */
+(function(){var last=0;function ping(){if(document.visibilityState!=='visible'||Date.now()-last<60000)return;last=Date.now();try{fetch('/api/health',{cache:'no-store',keepalive:true}).catch(function(){});}catch(e){}}
+ping();setInterval(ping,240000);document.addEventListener('visibilitychange',ping);})();
+</script>
 </body>
 </html>

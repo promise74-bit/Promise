@@ -1,4 +1,4 @@
-import type {Metadata,Viewport} from 'next'; import './globals.css'; import Header from '@/components/Header'; import Footer from '@/components/Footer'; import PwaRegister from '@/components/pwa/PwaRegister';
+import type {Metadata,Viewport} from 'next'; import './globals.css'; import Header from '@/components/Header'; import Footer from '@/components/Footer'; import KeepAlive from '@/components/KeepAlive'; import PwaRegister from '@/components/pwa/PwaRegister';
 export const metadata:Metadata={
   metadataBase:new URL(process.env.NEXT_PUBLIC_SITE_URL||'https://promisecomputerresearch.com.ng'),
   title:{default:'Promise Computer Research | Academic, Educational & Digital Services in Ekpoma',template:'%s | Promise Computer Research'},
@@ -14,4 +14,4 @@ export const metadata:Metadata={
   twitter:{card:'summary_large_image',title:'Promise Computer Research',description:'JAMB, WAEC, NECO, school fees, Post-UTME, airtime, data and academic support in Ekpoma, Edo State.',images:['/og-image.jpg']},
 };
 export const viewport:Viewport={themeColor:'#0757d5',width:'device-width',initialScale:1};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><Header/>{children}<Footer/><PwaRegister/></body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><Header/>{children}<Footer/><PwaRegister/><KeepAlive/></body></html>}
