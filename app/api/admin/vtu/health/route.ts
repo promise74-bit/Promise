@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { woodpayConfigured, woodpayWalletBalance, woodpayEndpoint } from '@/lib/woodpay';
+import { woodpayConfigured, woodpayWalletBalance } from '@/lib/woodpay';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,17 +12,16 @@ export async function GET() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (profile?.role !== 'admin') return NextResponse.json({ ok: false, error: 'Admin access required.' }, { status: 403 });
 
-    const result: Record<string, unknown> = { ok: true, configured: woodpayConfigured(), provider: 'WoodPay', endpoint: woodpayEndpoint('balance') };
-    if (!woodpayConfigured()) return NextResponse.json({ ...result, providerReachable: false, providerError: 'WOODPAY_API_KEY is missing on the server.' });
+    const result: Record<string, unknown> = { ok: true, configured: woodpayConfigured(), provider: 'Provider' };
+    if (!woodpayConfigured()) return NextResponse.json({ ...result, providerReachable: false, providerError: 'The provider API key is missing on the server.' });
     try {
       const b = await woodpayWalletBalance();
       result.providerReachable = b.httpStatus !== 401 && b.httpStatus !== 403;
       result.httpStatus = b.httpStatus;
       result.providerOk = b.ok;
-      result.finalUrl = b.finalUrl;
-      if (!b.ok) result.providerBody = String(b.raw || '').replace(/\s+/g, ' ').slice(0, 200);
+      if (!b.ok)
       if (b.ok) result.walletBalance = b.balance;
-      else result.providerError = 'WoodPay rejected the request (HTTP ' + b.httpStatus + ').';
+      else result.providerError = 'The provider rejected the request (HTTP ' + b.httpStatus + ').';
     } catch (error) {
       result.providerReachable = false;
       result.providerOk = false;

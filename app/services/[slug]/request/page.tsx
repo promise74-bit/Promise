@@ -76,14 +76,14 @@ export default function RequestService(){
  })();},[params.slug,router]);
 
  const [rules,setRules]=useState<Record<string,MarkupRule>>(DEFAULT_RULES);
- useEffect(()=>{fetch("/api/woodpay/markup",{cache:"no-store"}).then(r=>r.json()).then(b=>{if(b&&b.rules)setRules(cur=>({...cur,...b.rules}));}).catch(()=>{});},[]);
+ useEffect(()=>{fetch("/api/vtu/markup",{cache:"no-store"}).then(r=>r.json()).then(b=>{if(b&&b.rules)setRules(cur=>({...cur,...b.rules}));}).catch(()=>{});},[]);
 
  useEffect(()=>{
   if(kind!=="electricity"&&kind!=="exam")return;
   const catalogueKind=kind==="electricity"?"electricity":"education";
   let cancelled=false;
   setUtilityLoading(true);setUtilityError("");setUtilityProviders([]);
-  fetch("/api/woodpay/catalogue?kind="+catalogueKind,{cache:"no-store"})
+  fetch("/api/vtu/catalogue?kind="+catalogueKind,{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load providers.");return body;})
    .then(body=>{if(!cancelled)setUtilityProviders(Array.isArray(body.providers)?body.providers:[]);})
    .catch(err=>{if(!cancelled)setUtilityError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -95,7 +95,7 @@ export default function RequestService(){
   if(kind!=="datapin"||!form.network)return;
   let cancelled=false;
   setEpinLoading(true);setEpinError("");setEpinDenominations([]);
-  fetch("/api/woodpay/catalogue?kind=epin&provider="+encodeURIComponent(form.network),{cache:"no-store"})
+  fetch("/api/vtu/catalogue?kind=epin&provider="+encodeURIComponent(form.network),{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load recharge card PIN denominations.");return body;})
    .then(body=>{if(!cancelled)setEpinDenominations(Array.isArray(body.denominations)?body.denominations:[]);})
    .catch(err=>{if(!cancelled)setEpinError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -108,7 +108,7 @@ export default function RequestService(){
   const provider=params.slug==="dstv-subscription"?"dstv":params.slug==="gotv-subscription"?"gotv":"startimes";
   let cancelled=false;
   setCableLoading(true);setCableError("");setCablePlans([]);
-  fetch("/api/woodpay/catalogue?kind=cable&provider="+provider,{cache:"no-store"})
+  fetch("/api/vtu/catalogue?kind=cable&provider="+provider,{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load TV packages.");return body;})
    .then(body=>{if(!cancelled)setCablePlans(Array.isArray(body.plans)?body.plans:[]);})
    .catch(err=>{if(!cancelled)setCableError(SERVICE_UNAVAILABLE_MESSAGE);})
@@ -121,7 +121,7 @@ export default function RequestService(){
   let cancelled=false;
   setPlansLoading(true);setPlansError("");setDataPlans([]);
   setForm(current=>({...current,provider_plan_id:"",provider_amount:"",plan_name:"",plan_validity:""}));
-  fetch("/api/woodpay/data-plans?network="+encodeURIComponent(form.network||"mtn"),{cache:"no-store"})
+  fetch("/api/vtu/data-plans?network="+encodeURIComponent(form.network||"mtn"),{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load data plans.");return body;})
    .then(body=>{if(!cancelled)setDataPlans(Array.isArray(body.plans)?body.plans:[]);})
    .catch(err=>{if(!cancelled)setPlansError(SERVICE_UNAVAILABLE_MESSAGE);})

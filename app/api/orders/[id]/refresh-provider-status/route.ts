@@ -34,10 +34,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     const status = String(latest.status || result.status || "processing");
     const message = status === "completed"
-      ? "WoodPay confirms delivery. This order is now completed."
+      ? "Delivery confirmed. This order is now completed."
       : status === "needs_information"
       ? customerSafeError(latest.admin_note || "This order needs a manual provider-status check.")
-      : "WoodPay still reports this transaction as processing. No new purchase was submitted.";
+      : "Your order is still being processed. No new purchase was submitted.";
     return NextResponse.json({ ok: true, status, message });
   } catch (error) {
     console.error("Refresh WoodPay order status failed:", error);

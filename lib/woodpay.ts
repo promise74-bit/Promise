@@ -115,12 +115,12 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
     const needsToken = kind === "electricity" && !token;
     await admin.from("provider_transactions").update({ status: needsToken ? "pending" : "successful", provider_status: needsToken ? "Delivered; waiting for token" : "success", response: b }).eq("request_id", rid);
     if (needsToken) {
-      await admin.from("orders").update({ status: "processing", admin_note: "WoodPay reports success but has not returned the electricity token yet. Use Refresh provider status." }).eq("id", order.id);
+      await admin.from("orders").update({ status: "processing", admin_note: "Delivered. Your electricity token will appear here shortly." }).eq("id", order.id);
       return { status: "pending", message: "Delivered. Waiting for the electricity token." };
     }
     const alreadyDelivered = String(order.status) === "completed" && Boolean(order.form_data?.delivery_completed_at);
     await admin.from("orders").update({
-      status: "completed", admin_note: "WoodPay confirmed delivery.",
+      status: "completed", admin_note: "Delivered successfully.",
       form_data: { ...(order.form_data || {}), ...(token ? { delivery_pin: token } : {}), ...(b.units ? { delivery_units: String(b.units) } : {}), delivery_status_message: "Delivered", delivery_completed_at: new Date().toISOString() },
     }).eq("id", order.id);
     if (!alreadyDelivered) await notify("Order completed", "Your " + (service?.title || "service") + " order " + order.reference + " was completed successfully." + (token ? "\n\nDelivery details:\n" + token : " Open order details to view it."));
@@ -128,19 +128,19 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
   }
   if (status === "failed") {
     await admin.from("provider_transactions").update({ status: "failed", provider_status: ("failed (wallet refunded)" + (clean(b.reason) ? ": " + clean(b.reason).slice(0, 120) : "")), response: b }).eq("request_id", rid);
-    await admin.from("orders").update({ status: "needs_information", admin_note: "WoodPay could not deliver this order and refunded your WoodPay wallet." + (clean(b.reason) ? " Reason: " + clean(b.reason).slice(0, 200) + "." : "") + " Check the cause, then retry delivery." }).eq("id", order.id);
+    await admin.from("orders").update({ status: "needs_information", admin_note: "Your payment was received. We could not complete delivery automatically and our team is reviewing it." }).eq("id", order.id);
     await notify("Order needs attention", "Your order " + order.reference + " could not be delivered yet. We are looking into it.");
     return { status: "failed", message: "Delivery failed and was refunded." };
   }
   if (status === "pending" || r.httpStatus === 202) {
     await admin.from("provider_transactions").update({ status: "pending", provider_status: "pending", response: b }).eq("request_id", rid);
-    await admin.from("orders").update({ status: "processing", admin_note: "WoodPay accepted the order and is still processing it. Do not resubmit; use Refresh provider status." }).eq("id", order.id);
+    await admin.from("orders").update({ status: "processing", admin_note: "Your order is being processed. This can take a few minutes." }).eq("id", order.id);
     return { status: "pending", message: "Still processing." };
   }
   // Rejected before any charge (bad input, wallet too low, service off): safe to retry later.
   const low = r.httpStatus === 402;
-  await admin.from("provider_transactions").update({ status: "failed", provider_status: low ? "insufficient WoodPay wallet" : "rejected", response: { ...b, http: r.httpStatus } }).eq("request_id", rid);
-  await admin.from("orders").update({ status: "needs_information", admin_note: low ? "Payment received, but the WoodPay wallet balance is too low. Fund the WoodPay wallet, then retry delivery." : "Payment received, but WoodPay rejected the order: " + clean(b.error).slice(0, 300) }).eq("id", order.id);
+  await admin.from("provider_transactions").update({ status: "failed", provider_status: low ? "insufficient provider wallet" : "rejected: " + clean(b.error).slice(0, 120), response: { ...b, http: r.httpStatus } }).eq("request_id", rid);
+  await admin.from("orders").update({ status: "needs_information", admin_note: "Your payment was received. We could not complete delivery automatically and our team is reviewing it." }).eq("id", order.id);
   await notify("Payment received — order needs attention", "Your payment was successful, but delivery needs a manual check. We are reviewing order " + order.reference + ".");
   return { status: "failed", message: customerSafeError(clean(b.error)) };
 }
@@ -149,12 +149,12 @@ async function checkPending(admin: any, order: any, existing: any, kind: string)
   try {
     const r = await woodpayCall("order", "GET", { reference: existing.request_id });
     if (r.httpStatus === 404) { // never debited on WoodPay → safe to retry with a new reference
-      await admin.from("provider_transactions").update({ status: "failed", provider_status: "not found at WoodPay" }).eq("request_id", existing.request_id);
+      await admin.from("provider_transactions").update({ status: "failed", provider_status: "not found at provider" }).eq("request_id", existing.request_id);
       return null;
     }
     return await applyResult(admin, order, existing.request_id, kind, r);
   } catch (e) {
-    return { status: "pending", message: "WoodPay status check failed. The order was not resubmitted." };
+    return { status: "pending", message: "Status check failed. The order was not resubmitted." };
   }
 }
 
@@ -171,8 +171,8 @@ export async function fulfillOrder(orderId: string) {
   let profilePhone = "";
   if (order.customer_id) { const { data: p } = await admin.from("profiles").select("phone").eq("id", order.customer_id).maybeSingle(); profilePhone = clean(p?.phone); }
   const product = normalize(order, profilePhone);
-  if (!product) return markNeedsAttention(admin, order, "This service is delivered manually (it is not on the WoodPay API). Use Manual delivery on this order.");
-  if (!woodpayConfigured()) return markNeedsAttention(admin, order, "WOODPAY_API_KEY is not set on the server. Set it, then retry delivery.");
+  if (!product) return markNeedsAttention(admin, order, "Your payment was received. Our team will complete this order and update you shortly.");
+  if (!woodpayConfigured()) return (console.error("[woodpay] WOODPAY_API_KEY is not set on the server"), markNeedsAttention(admin, order, "Your payment was received. Our team will complete this order shortly."));
 
   const phoneKind = product.kind === "airtime" || product.kind === "data";
   const problem =
@@ -210,7 +210,7 @@ export async function fulfillOrder(orderId: string) {
   } catch (e) {
     const raw = e instanceof Error ? e.message : "WoodPay request failed.";
     await admin.from("provider_transactions").update({ status: "pending", provider_status: "unknown — check before retrying", response: { error: raw, ambiguous: true } }).eq("request_id", rid);
-    await admin.from("orders").update({ status: "needs_information", admin_note: "The WoodPay connection failed during the purchase. The result is unknown; use Refresh provider status before any retry." }).eq("id", order.id);
+    await admin.from("orders").update({ status: "needs_information", admin_note: "Your order is being processed. We are confirming the result." }).eq("id", order.id);
     return { status: "pending", message: customerSafeError(raw) };
   }
 }

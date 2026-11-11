@@ -10,7 +10,7 @@ export default async function AdminMarkup() {
   return (
     <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <h2 className="text-xl font-black">Your markup</h2>
-      <p className="mt-1 text-sm text-slate-500">The WoodPay price plus the markup you set here is what your customer pays. Change it any time; it applies to new orders.</p>
+      <p className="mt-1 text-sm text-slate-500">Our cost price plus the markup you set here is what your customer pays. Change it any time; it applies to new orders.</p>
       <MarkupForm rows={rows} />
     </div>
   );

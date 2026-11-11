@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         console.error('WoodPay fulfillment retry from duplicate webhook failed:', message);
         const { error: updateError } = await supabase.from('orders').update({
           status: 'needs_information',
-          admin_note: 'Payment received, but automatic WoodPay fulfillment encountered an unexpected error: ' + message.slice(0, 500)
+          admin_note: 'Payment received. We are finalizing your order and will update you shortly.'
         }).eq('id', payment.order_id);
         if (updateError) console.error('Could not record WoodPay fulfillment error:', updateError.message);
       }
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       // Keep the payment recorded as paid, but never leave the order silently stuck in processing.
       const { error: fulfillmentUpdateError } = await supabase.from('orders').update({
         status: 'needs_information',
-        admin_note: 'Payment received, but automatic WoodPay fulfillment encountered an unexpected error: ' + message.slice(0, 500)
+        admin_note: 'Payment received. We are finalizing your order and will update you shortly.'
       }).eq('id', payment.order_id);
       if (fulfillmentUpdateError) {
         console.error('Could not record WoodPay fulfillment error on order:', fulfillmentUpdateError.message);

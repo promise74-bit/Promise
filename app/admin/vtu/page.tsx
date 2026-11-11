@@ -1,5 +1,5 @@
-import WoodPayHealth from '../VTUTelecomHealth';
+import ProviderHealth from '../VTUTelecomHealth';
 
 export default function VTUAdminPage() {
-  return <div><WoodPayHealth /></div>;
+  return <div><ProviderHealth /></div>;
 }
