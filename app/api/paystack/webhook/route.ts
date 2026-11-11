@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { fulfillOrder } from '@/lib/woodpay';
 import { checkPaystackAmount } from '@/lib/paystack';
 import { sendOrderEmail } from '@/lib/order-emails';
+import { creditFunding } from '@/lib/wallet';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +36,24 @@ export async function POST(request: Request) {
       .eq('reference', reference)
       .maybeSingle();
 
-    if (!payment) return NextResponse.json({ received: true });
+    if (!payment) {
+      // Not an order payment: it may be a wallet funding.
+      const { data: funding } = await supabase
+        .from('wallet_transactions')
+        .select('amount,status')
+        .eq('reference', reference)
+        .eq('kind', 'funding')
+        .maybeSingle();
+      if (funding && funding.status === 'pending') {
+        const fundingCheck = checkPaystackAmount(data, Number(funding.amount));
+        if (!fundingCheck.ok || String(data.currency || 'NGN').toUpperCase() !== 'NGN') {
+          console.error('Wallet funding webhook rejected:', fundingCheck.cause);
+          return new NextResponse('Amount or currency mismatch', { status: 400 });
+        }
+        await creditFunding(reference);
+      }
+      return NextResponse.json({ received: true });
+    }
 
     // A paid payment may have been recorded by the browser callback before this webhook arrived.
     // Re-enter the idempotent fulfillment flow so a missed callback cannot strand a paid order.

@@ -40,6 +40,15 @@ export default async function Services() {
         </div>
       </section>
 
+      <section className="pt-6">
+        <div className="container">
+          <Link href="/dashboard/wallet" className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-[#f0f6ff] px-4 py-3 text-sm hover:border-[#0757d5]">
+            <span><b className="text-[#0b1730]">💳 Pay faster with your wallet.</b> <span className="text-slate-600">Fund once, pay for any service in one tap.</span></span>
+            <span className="shrink-0 font-bold text-[#0757d5]">Open wallet →</span>
+          </Link>
+        </div>
+      </section>
+
       <section className="py-6 sm:py-9">
         <div className="container">
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-5 xl:grid-cols-6">
