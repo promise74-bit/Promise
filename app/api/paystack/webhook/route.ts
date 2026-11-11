@@ -5,6 +5,7 @@ import { fulfillOrder } from '@/lib/woodpay';
 import { checkPaystackAmount } from '@/lib/paystack';
 import { sendOrderEmail } from '@/lib/order-emails';
 import { creditFunding } from '@/lib/wallet';
+import { creditTransfer } from '@/lib/wallet-transfer';
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,10 @@ export async function POST(request: Request) {
     if (event.event !== 'charge.success') return NextResponse.json({ received: true });
 
     const data = event.data;
+
+    // Bank-transfer wallet funding (dedicated account): credit the wallet and stop here.
+    try { if ((await creditTransfer(data)) !== null) return NextResponse.json({ received: true }); }
+    catch (e) { console.error('Wallet transfer webhook failed:', e instanceof Error ? e.message : e); return new NextResponse('Temporary error', { status: 500 }); }
     const reference = String(data?.reference || '').trim();
     if (!reference || reference.length > 200) return NextResponse.json({ received: true });
 

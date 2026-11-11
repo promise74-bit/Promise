@@ -62,7 +62,7 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 overflow-y-auto border-r border-slate-200 bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 print:!hidden overflow-y-auto border-r border-slate-200 bg-white lg:block">
         <div className="sticky top-0 z-10 border-b border-slate-100 bg-white p-4">{logo}</div>
         <SideNav groups={groups} path={path} unread={unread} isAdmin={isAdmin} onNavigate={() => {}} />
       </aside>
@@ -73,8 +73,8 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
           <SideNav groups={groups} path={path} unread={unread} isAdmin={isAdmin} onNavigate={() => setDrawer(false)} />
         </div></div>}
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-6">
+      <div className="lg:pl-72 print:!pl-0">
+        <header className="sticky top-0 z-30 flex h-14 print:!hidden items-center gap-3 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-6">
           <button onClick={() => setDrawer(true)} aria-label="Open menu" className="rounded-lg p-2 hover:bg-slate-100 lg:hidden"><Menu size={22} /></button>
           <div className="lg:hidden">{logo}</div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -92,7 +92,7 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
         <main className="app-main mx-auto max-w-6xl px-3 pb-28 pt-5 sm:px-6 lg:pb-10">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 print:!hidden border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5">
           {bottom.slice(0, 2).map(b => <Link key={b.href} href={b.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${active(path, b.href) ? 'text-[#0757d5]' : 'text-slate-500'}`}><b.Icon size={21} />{b.label}</Link>)}
           <button onClick={() => setDrawer(true)} className="flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold text-slate-500"><span className="-mt-5 grid h-12 w-12 place-items-center rounded-full bg-[#0757d5] text-white shadow-lg ring-4 ring-white"><LayoutGrid size={22} /></span>Services</button>
