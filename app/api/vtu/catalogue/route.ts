@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getWoodpayCablePlans, getWoodpayDiscos } from "@/lib/woodpay";
+import { examUnitPrices, EXAM_NAMES } from "@/lib/exam-prices";
 import { SERVICE_UNAVAILABLE_MESSAGE } from "@/lib/service-errors";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ providers }, { headers: NO_STORE });
     }
     // Exam PINs and recharge-card PINs: fixed list, delivered manually by staff (not on the WoodPay API).
-    if (kind === "education") return NextResponse.json({ providers: [{ id: "waec", name: "WAEC" }, { id: "neco", name: "NECO" }, { id: "nabt", name: "NABTEB" }] }, { headers: NO_STORE });
+    if (kind === "education") return NextResponse.json({ providers: Object.keys(EXAM_NAMES).map(id => ({ id, name: EXAM_NAMES[id] })), prices: await examUnitPrices() }, { headers: NO_STORE });
     if (kind === "epin") return NextResponse.json({ denominations: [100, 200, 500, 1000, 2000, 5000, 10000, 20000].map(v => ({ value: v, label: "₦" + v.toLocaleString() + " recharge PIN" })) }, { headers: NO_STORE });
     return NextResponse.json({ error: "Unknown catalogue type." }, { status: 400 });
   } catch (error) {

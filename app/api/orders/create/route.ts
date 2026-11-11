@@ -3,13 +3,13 @@ import {createClient} from "@/lib/supabase/server";
 import {createAdminClient} from "@/lib/supabase/admin";
 import {getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
+import {examUnitPrices} from "@/lib/exam-prices";
 import {customerSafeError} from "@/lib/service-errors";
 import {sendOrderEmail} from "@/lib/order-emails";
 
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
 const clean=(v:unknown)=>String(v??"").trim();
 const serviceFee=(amount:number,rate:number)=>Math.ceil(amount*rate/100);
-const EXAM_PIN_PRICES:Record<string,number>={waec:5800,neco:2200,nabt:1500};
 const JAMB_SERVICE_PRICES:Record<string,number>={"jamb-admission-letter-portal":3000,"jamb-admission-letter-no-portal":4000,"jamb-original-result-portal":2500,"jamb-original-result-no-portal":3500,"jamb-original-result-printing":2500,"jamb-admission-letter-printing":3000,"jamb-admission-status-checking":1000,"jamb-reprinting":1000,"jamb-olevel-screenshot":1000,"jamb-email-phone-screenshot":1000,"jamb-profile-code-retrieval":1000,"jamb-registration-number-retrieval":1000,"jamb-indemnity-form":1000};
 export async function POST(request:Request){
  try{
@@ -92,7 +92,7 @@ export async function POST(request:Request){
    const provider=text.includes("waec")?"waec":text.includes("neco")?"neco":(text.includes("nabteb")||text==="nabt")?"nabt":"";
    const quantity=Number(formData.quantity||1);
    if(!provider||!Number.isInteger(quantity)||quantity<1||quantity>10)return NextResponse.json({error:"Choose WAEC, NECO or NABTEB and a quantity from 1 to 10."},{status:400});
-   const unitPrice=EXAM_PIN_PRICES[provider]||0;
+   const unitPrice=(await examUnitPrices())[provider]||0;
    if(unitPrice<=0)return NextResponse.json({error:"No selling price is configured for this exam PIN type."},{status:503});
    const providerAmount=unitPrice*quantity;
    const fee=serviceFee(providerAmount,5);

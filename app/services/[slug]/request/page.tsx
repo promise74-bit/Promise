@@ -12,7 +12,6 @@ type EpinDenomination={value:number;label:string};
 const VTU_SLUGS=new Set(["airtime-recharge","data-subscription","dstv-subscription","gotv-subscription","startimes-subscription","electricity-bill","exam-pins","data-pins"]);
 type MarkupRule={mode:"percent"|"flat";value:number};
 const DEFAULT_RULES:Record<string,MarkupRule>={airtime:{mode:"percent",value:3},data:{mode:"percent",value:5},cable:{mode:"percent",value:5},electricity:{mode:"percent",value:5},exam:{mode:"percent",value:5},datapin:{mode:"percent",value:5},jamb:{mode:"flat",value:200}};
-const EXAM_PIN_PRICES:Record<string,number>={waec:5800,neco:2200,nabt:1500};
 const SERVICE_UNAVAILABLE_MESSAGE="This service is not currently available. Please try again later.";
 function canonicalExamProvider(value:unknown){
  const text=String(value??"").trim().toLowerCase();
@@ -42,7 +41,8 @@ export default function RequestService(){
  const [epinDenominations,setEpinDenominations]=useState<EpinDenomination[]>([]),[epinLoading,setEpinLoading]=useState(false),[epinError,setEpinError]=useState("");
 
  const isVTU=VTU_SLUGS.has(params.slug);
- const examUnitPrice=EXAM_PIN_PRICES[String(form.exam_type||"").toLowerCase()]||0;
+ const [examPrices,setExamPrices]=useState<Record<string,number>>({});
+ const examUnitPrice=examPrices[String(form.exam_type||"").toLowerCase()]||0;
  const examPriceConfigured=examUnitPrice>0;
  const kind=params.slug==="airtime-recharge"?"airtime":params.slug==="data-subscription"?"data":["dstv-subscription","gotv-subscription","startimes-subscription"].includes(params.slug)?"cable":params.slug==="electricity-bill"?"electricity":params.slug==="exam-pins"?"exam":params.slug==="data-pins"?"datapin":"";
  const set=(k:string,v:string)=>setForm(x=>({...x,[k]:v}));
@@ -85,7 +85,7 @@ export default function RequestService(){
   setUtilityLoading(true);setUtilityError("");setUtilityProviders([]);
   fetch("/api/vtu/catalogue?kind="+catalogueKind,{cache:"no-store"})
    .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error||"Could not load providers.");return body;})
-   .then(body=>{if(!cancelled)setUtilityProviders(Array.isArray(body.providers)?body.providers:[]);})
+   .then(body=>{if(!cancelled){setUtilityProviders(Array.isArray(body.providers)?body.providers:[]);if(body.prices)setExamPrices(body.prices);}})
    .catch(err=>{if(!cancelled)setUtilityError(SERVICE_UNAVAILABLE_MESSAGE);})
    .finally(()=>{if(!cancelled)setUtilityLoading(false);});
   return ()=>{cancelled=true;};

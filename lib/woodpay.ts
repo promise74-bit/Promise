@@ -51,6 +51,12 @@ export async function getWoodpayDiscos(): Promise<string[]> {
   const body = await catalogue("electricity_providers");
   return (body.providers || []).map(clean).filter(Boolean);
 }
+export async function getWoodpayExamPrices(): Promise<Record<string, number>> {
+  const body = await catalogue("exam_plans");
+  const out: Record<string, number> = {};
+  for (const p of body.plans || []) { const k = clean(p.exam).toLowerCase() === "nabteb" ? "nabt" : clean(p.exam).toLowerCase(); const n = Number(p.price); if (k && Number.isFinite(n) && n > 0) out[k] = n; }
+  return out;
+}
 export const meterTypeName = (v: unknown) => (Number(v) === 2 || clean(v).toLowerCase() === "postpaid" ? "postpaid" : "prepaid");
 export async function woodpayVerifyCable(provider: string, smartcard: string) {
   const { httpStatus, body } = await woodpayCall("cable_verify", "POST", { provider, smartcard });
