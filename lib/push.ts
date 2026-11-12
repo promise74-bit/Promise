@@ -1,6 +1,6 @@
-import * as webpushNs from 'web-push';
-// Works whether the bundler exposes the CommonJS module as a namespace or as a default export.
-const webpush: typeof import('web-push') = (webpushNs as any).default ?? (webpushNs as any);
+// Server-only: load the CommonJS module directly.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const webpush: typeof import('web-push') = require('web-push');
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '@/lib/push-config';
 
 let ready = false;
