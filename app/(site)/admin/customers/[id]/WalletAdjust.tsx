@@ -19,7 +19,7 @@ export default function WalletAdjust({ userId, balance }: { userId: string; bala
   }
   const box = 'w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm';
   return (
-    <div className="mt-5 rounded-2xl border border-slate-200 p-4">
+    <div id="wallet" className="mt-5 rounded-2xl border border-slate-200 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Wallet balance</p>
       <p className="mt-1 text-3xl font-black">₦{balance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</p>
       <form onSubmit={save} className="mt-4 space-y-2">
