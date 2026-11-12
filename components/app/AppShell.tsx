@@ -4,11 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Bell, Building2, ChevronDown, FileText, GraduationCap, Grid2X2, Home, LayoutGrid, Menu, MessageCircle, Phone, ReceiptText, School, Settings, User, Wallet, X, BookOpen } from 'lucide-react';
+import { Facebook, Bell, Building2, ChevronDown, FileText, GraduationCap, Grid2X2, Home, LayoutGrid, Menu, MessageCircle, Phone, ReceiptText, School, Settings, User, Wallet, X, BookOpen } from 'lucide-react';
 import HelpBot from '@/components/app/HelpBot';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SignOutButton from '@/components/dashboard/SignOutButton';
 import type { NavGroup } from '@/lib/app-nav';
+import { FACEBOOK_URL } from '@/lib/social';
 
 const ICONS: Record<string, any> = { phone: Phone, cap: GraduationCap, file: FileText, school: School, docs: FileText, book: BookOpen, building: Building2, grid: Grid2X2 };
 
@@ -49,6 +50,7 @@ function SideNav({ groups, path, unread, isAdmin, onNavigate }: { groups: NavGro
       {row('/dashboard/profile', 'Profile', User)}
       {isAdmin && row('/admin', 'Admin', Settings)}
       <a href="https://wa.me/2347058391188" target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"><MessageCircle size={18} /> Help on WhatsApp</a>
+      <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"><Facebook size={18} /> Follow us on Facebook</a>
     </nav>
   );
 }

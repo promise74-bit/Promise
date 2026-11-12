@@ -1,5 +1,6 @@
 // Free help bot: no AI, no cost. Matches keywords and replies with short, accurate answers and links.
 // Only describe things the site really does. Anything uncertain goes to a human on WhatsApp.
+import { FACEBOOK_URL, INSTAGRAM_URL } from '@/lib/social';
 export const WHATSAPP = 'https://wa.me/2347058391188';
 export type BotLink = { label: string; href: string; external?: boolean };
 export type BotReply = { text: string; links?: BotLink[]; chips?: string[] };
@@ -25,6 +26,7 @@ const INTENTS: Intent[] = [
   { id: 'notifications', match: [/notification/, /bell/, /alerts?/], reply: { text: 'The bell at the top shows new updates. Open the Notifications page to filter, read everything and mark all as read.', links: [{ label: 'Notifications', href: '/dashboard/notifications' }] } },
   { id: 'password', match: [/forgot/, /reset/, /password/, /login/, /log in/, /sign in/, /can'?t (log|sign)/], reply: { text: 'To reset your password, use the "Forgot password" page. We will email you a reset link.', links: [{ label: 'Reset password', href: '/forgot-password' }] } },
   { id: 'profile', match: [/profile/, /phone number/, /change (my )?(name|number|email)/, /update my/], reply: { text: 'You can update your name and phone number on your Profile page.', links: [{ label: 'Open Profile', href: '/dashboard/profile' }] } },
+  { id: 'social', match: [/facebook/, /instagram/, /social/, /follow/, /\bpage\b/, /fb\b/], reply: { text: 'Follow us for updates, offers and new services.', links: [{ label: 'Our Facebook page', href: FACEBOOK_URL, external: true }, { label: 'Our Instagram', href: INSTAGRAM_URL, external: true }] } },
   { id: 'install', match: [/install/, /home screen/, /app\b/], reply: { text: 'You can install this site like an app. On your phone, open the browser menu and choose "Add to Home screen" (or "Install app").' } },
   { id: 'human', match: [/human/, /agent/, /person/, /support/, /contact/, /call/, /speak/, /whatsapp/, /help me/, /complain/], reply: { text: 'Our team is happy to help. Tap below to message us on WhatsApp. Please include your order reference if it is about an order.', links: [human] } },
   { id: 'hello', match: [/^(hi|hello|hey|good (morning|afternoon|evening)|help|menu)\b/], reply: { text: 'Hello! What can I help you with?', chips: ['Fund my wallet', 'Buy data', 'Track my order', 'Talk to a human'] } },
