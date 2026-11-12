@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Bell, CheckCheck, ReceiptText, RotateCcw, Wallet } from 'lucide-react';
+import PushToggle from '@/components/notifications/PushToggle';
 
 export type NoteItem = { id: string; title: string; message: string; read: boolean; created_at: string };
 type Filter = 'all' | 'unread' | 'wallet' | 'orders';
@@ -58,6 +59,8 @@ export default function NotificationCenter({ initial }: { initial: NoteItem[] })
           <p className="mt-1 text-sm text-slate-500">{unread ? `${unread} unread` : 'You are all caught up'}</p></div>
         {unread > 0 && <button onClick={markAll} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50"><CheckCheck size={16} />{busy ? 'Marking…' : 'Mark all as read'}</button>}
       </div>
+
+      <PushToggle />
 
       <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
         {tabs.map(([f, label, count]) => (
