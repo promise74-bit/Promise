@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { ArrowDownLeft, ArrowUpRight, Landmark, ReceiptText, RotateCcw, Wallet, CreditCard } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, RotateCcw, CreditCard, Smartphone, Tv, Wifi, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { MAX_FUNDING, MIN_FUNDING } from '@/lib/wallet';
 import { getWalletAccount } from '@/lib/wallet-transfer';
 import FundWalletForm from './FundWalletForm';
 import BankTransferCard from './BankTransferCard';
 import PinSettings from './PinSettings';
+import BalanceCard from './BalanceCard';
 
 export const metadata = { title: 'Wallet' };
 export const dynamic = 'force-dynamic';
@@ -51,15 +52,12 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       <div><p className="text-sm font-bold text-[#0757d5]">MY WALLET</p><h1 className="mt-1 text-2xl font-black sm:text-3xl">Wallet</h1></div>
       {walletError && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">The wallet is not available yet. Please try again shortly.</div>}
 
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0757d5] to-[#0b1730] p-6 text-white shadow-lg">
-        <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15"><Wallet /></span><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-100">Available balance</p></div>
-        <p className="mt-5 text-4xl font-black sm:text-5xl">{naira(balance)}</p>
-        <div className="mt-6 grid grid-cols-3 gap-2 sm:max-w-md">
-          <a href="#fund" className="flex flex-col items-center gap-1 rounded-2xl bg-white/15 px-2 py-3 text-xs font-bold hover:bg-white/25"><CreditCard size={20} />Card</a>
-          <a href="#transfer" className="flex flex-col items-center gap-1 rounded-2xl bg-white/15 px-2 py-3 text-xs font-bold hover:bg-white/25"><Landmark size={20} />Transfer</a>
-          <a href="#history" className="flex flex-col items-center gap-1 rounded-2xl bg-white/15 px-2 py-3 text-xs font-bold hover:bg-white/25"><ReceiptText size={20} />History</a>
-        </div>
-      </section>
+      <BalanceCard balance={balance} />
+
+      <div className="grid grid-cols-4 gap-3">
+        {[['Data', '/services/data-subscription/request', Wifi, 'bg-violet-100 text-violet-600'], ['Airtime', '/services/airtime-recharge/request', Smartphone, 'bg-blue-100 text-blue-600'], ['TV', '/services/dstv-subscription/request', Tv, 'bg-cyan-100 text-cyan-600'], ['Power', '/services/electricity-bill/request', Zap, 'bg-amber-100 text-amber-600']].map(([label, href, Icon, tone]: any) => (
+          <Link key={label} href={href} className="flex flex-col items-center gap-2 rounded-2xl bg-white py-4 shadow-sm transition hover:shadow-md"><span className={'grid h-11 w-11 place-items-center rounded-xl ' + tone}><Icon size={20} /></span><span className="text-xs font-bold text-slate-700">{label}</span></Link>))}
+      </div>
 
       <div className="grid grid-cols-3 gap-3 text-center">
         {[['Funded this month', sum('funding'), 'text-emerald-600'], ['Spent this month', sum('order_payment'), 'text-slate-800'], ['Refunded', sum('refund'), 'text-blue-600']].map(([l, v, c]) => (

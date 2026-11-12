@@ -92,16 +92,9 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
               </div></details>
           </div>
         </header>
-        <main className="app-main mx-auto max-w-6xl px-3 pb-28 pt-5 sm:px-6 lg:pb-10">{children}</main>
+        <main className="app-main mx-auto max-w-6xl px-3 pb-20 pt-5 sm:px-6 lg:pb-16">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 print:!hidden border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5">
-          {bottom.slice(0, 2).map(b => <Link key={b.href} href={b.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${active(path, b.href) ? 'text-[#0757d5]' : 'text-slate-500'}`}><b.Icon size={21} />{b.label}</Link>)}
-          <button onClick={() => setDrawer(true)} className="flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold text-slate-500"><span className="-mt-5 grid h-12 w-12 place-items-center rounded-full bg-[#0757d5] text-white shadow-lg ring-4 ring-white"><LayoutGrid size={22} /></span>Services</button>
-          {bottom.slice(2).map(b => <Link key={b.href} href={b.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${active(path, b.href) ? 'text-[#0757d5]' : 'text-slate-500'}`}><b.Icon size={21} />{b.label}</Link>)}
-        </div>
-      </nav>
       <HelpBot name={name} />
     </div>
   );

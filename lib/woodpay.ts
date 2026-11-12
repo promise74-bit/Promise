@@ -85,7 +85,8 @@ type Product =
   | { kind: "airtime"; network: string | null; phone: string; amount: number }
   | { kind: "data"; network: string | null; phone: string; plan: string; amount: number }
   | { kind: "cable"; provider: string; plan: string; smartcard: string; phone: string; amount: number }
-  | { kind: "electricity"; disco: string; meterNumber: string; meterType: string; phone: string; amount: number };
+  | { kind: "electricity"; disco: string; meterNumber: string; meterType: string; phone: string; amount: number }
+  | { kind: "exam"; exam: string; quantity: number; phone: string; amount: number };
 
 function normalize(order: any, profilePhone: string): Product | null {
   const service = Array.isArray(order.services) ? order.services[0] : order.services;
@@ -99,7 +100,14 @@ function normalize(order: any, profilePhone: string): Product | null {
     return { kind: "cable", provider: slug.replace("-subscription", ""), plan: clean(f.provider_plan_id || f.plan_id), smartcard: clean(f.smartcard || f.smartcard_number || f.iuc_number), phone, amount: Number(f.provider_amount || 0) };
   if (slug === "electricity-bill")
     return { kind: "electricity", disco: clean(f.provider_id || f.disco_id), meterNumber: clean(f.meter_number), meterType: meterTypeName(f.meter_type || f.meter_type_id), phone, amount: Number(f.provider_amount || f.amount || 0) };
-  return null; // exam PINs / recharge-card PINs are not on the WoodPay API: staff deliver them manually
+  if (slug === "exam-pins") { const e = clean(f.exam_type || f.provider_id).toLowerCase(); return { kind: "exam", exam: e === "nabt" ? "nabteb" : e, quantity: Number(f.quantity || 1), phone, amount: Number(f.provider_amount || 0) }; }
+  return null; // recharge-card PINs are not on the WoodPay API: staff deliver them manually
+}
+
+function formatPins(pins: any): string {
+  const arr = Array.isArray(pins) ? pins : pins ? [pins] : [];
+  const lines = arr.map((p: any) => typeof p === "string" ? p : Object.entries(p || {}).filter(([k, v]) => v != null && String(v) !== "" && !/(^|_)id$|status|created|updated|amount|price/i.test(k)).map(([k, v]) => k.replace(/_/g, " ") + ": " + v).join(" · ")).filter(Boolean);
+  return lines.map((t: string, i: number) => lines.length > 1 ? "#" + (i + 1) + " " + t : t).join("\n");
 }
 
 const requestId = (order: any) => "PCR" + String(order.reference).replace(/[^A-Za-z0-9]/g, "") + crypto.createHash("sha1").update(order.id).digest("hex").slice(0, 8);
@@ -115,9 +123,16 @@ async function applyResult(admin: any, order: any, rid: string, kind: string, r:
   const service = Array.isArray(order.services) ? order.services[0] : order.services;
   const status = String(b.status || "").toLowerCase();
   if (status === "failed" || (r.httpStatus >= 400 && status !== "pending")) console.error("[woodpay] delivery not completed", JSON.stringify({ order: order.reference, kind, http: r.httpStatus, response: b }).slice(0, 1500));
-  const token = clean(b.token);
+  const token = kind === "exam" ? formatPins(b.pins) : clean(b.token);
   const notify = (title: string, message: string) => order.customer_id ? admin.from("notifications").insert({ user_id: order.customer_id, title, message }) : null;
 
+  if (r.httpStatus === 200 && b.ok && status === "success" && kind === "exam" && !formatPins(b.pins)) {
+    // Bought and paid for at WoodPay, but no PIN came back in the reply: never refund or re-buy; staff fetch it.
+    console.error("[woodpay] exam purchase succeeded without PIN data", JSON.stringify({ order: order.reference, response: b }).slice(0, 1200));
+    await admin.from("provider_transactions").update({ status: "successful", provider_status: "success but no PIN in reply: fetch it from the provider", response: b }).eq("request_id", rid);
+    await admin.from("orders").update({ status: "needs_information", admin_note: "Your payment was received. Our team is sending your PIN shortly." }).eq("id", order.id);
+    return { status: "pending", message: "Delivered. Waiting for the PIN." };
+  }
   if (r.httpStatus === 200 && b.ok && status === "success") {
     const needsToken = kind === "electricity" && !token;
     await admin.from("provider_transactions").update({ status: needsToken ? "pending" : "successful", provider_status: needsToken ? "Delivered; waiting for token" : "success", response: b }).eq("request_id", rid);
@@ -199,10 +214,11 @@ export async function fulfillOrder(orderId: string) {
   const problem =
     !Number.isFinite(product.amount) || product.amount <= 0 ? "A valid purchase amount is missing." :
     phoneKind && !(product as any).network ? "The network is missing." :
-    !/^0[789][01]\d{8}$/.test(product.phone) ? "A valid 11-digit recipient phone number is required." :
+    product.kind !== "exam" && !/^0[789][01]\d{8}$/.test(product.phone) ? "A valid 11-digit recipient phone number is required." :
     product.kind === "airtime" && (product.amount < 50 || !Number.isInteger(product.amount)) ? "Airtime minimum is ₦50 (whole naira)." :
     product.kind === "data" && !product.plan ? "The data plan is missing." :
     product.kind === "cable" && (!product.plan || !/^\d{5,15}$/.test(product.smartcard)) ? "A valid TV package and smartcard number are required." :
+    product.kind === "exam" && (!["waec", "neco", "nabteb"].includes(product.exam) || !Number.isInteger(product.quantity) || product.quantity < 1 || product.quantity > 10) ? "A valid exam type and quantity are required." :
     product.kind === "electricity" && (!product.disco || !/^\d{6,15}$/.test(product.meterNumber) || product.amount < 500) ? "A valid disco, meter number and amount are required." : "";
   if (problem) return markNeedsAttention(admin, order, problem);
 
@@ -223,6 +239,7 @@ export async function fulfillOrder(orderId: string) {
   const body: Record<string, unknown> =
     product.kind === "airtime" ? { network: product.network, phone: product.phone, amount: product.amount, reference: rid } :
     product.kind === "data" ? { network: product.network, plan_id: product.plan, phone: product.phone, reference: rid } :
+    product.kind === "exam" ? { exam: product.exam, quantity: product.quantity, reference: rid } :
     product.kind === "cable" ? { provider: product.provider, plan_id: product.plan, smartcard: product.smartcard, phone: product.phone, reference: rid } :
     { disco: product.disco, meter_number: product.meterNumber, meter_type: product.meterType, amount: product.amount, phone: product.phone, reference: rid };
   try {

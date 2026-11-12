@@ -26,7 +26,7 @@ export default function HelpBot({ name, defaultOpen = false }: { name?: string; 
   return (
     <div className="print:hidden">
       {open && (
-        <div className="fixed inset-x-2 bottom-24 z-50 flex h-[68vh] max-h-[560px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl sm:inset-x-auto sm:right-6 sm:w-96 lg:bottom-24">
+        <div className="fixed inset-x-2 bottom-40 z-50 flex h-[68vh] max-h-[560px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl sm:inset-x-auto sm:right-6 sm:w-96 lg:bottom-40">
           <div className="flex items-center gap-3 bg-gradient-to-r from-[#0757d5] to-[#0b1730] px-4 py-3 text-white">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-white/20"><Headphones size={18} /></span>
             <div className="flex-1"><p className="text-sm font-black leading-tight">Help Centre</p><p className="text-[11px] text-blue-100">Instant answers, 24/7</p></div>
@@ -52,7 +52,7 @@ export default function HelpBot({ name, defaultOpen = false }: { name?: string; 
           </form>
           <a href={WHATSAPP} target="_blank" rel="noreferrer" className="border-t border-slate-100 bg-emerald-50 py-2 text-center text-xs font-bold text-emerald-700">Prefer a person? Chat on WhatsApp</a>
         </div>)}
-      <button onClick={() => setOpen(o => !o)} aria-label={open ? 'Close help chat' : 'Open help chat'} className="fixed bottom-20 right-4 z-50 grid h-14 w-14 place-items-center rounded-full bg-[#0757d5] text-white shadow-xl ring-4 ring-white transition hover:scale-105 sm:right-6 lg:bottom-6">
+      <button onClick={() => setOpen(o => !o)} aria-label={open ? 'Close help chat' : 'Open help chat'} className="fixed bottom-24 right-4 z-50 grid h-14 w-14 place-items-center rounded-full bg-[#0757d5] text-white shadow-xl ring-4 ring-white transition hover:scale-105 sm:right-6 lg:bottom-24">
         {open ? <X size={24} /> : <MessageCircle size={26} />}
       </button>
     </div>
