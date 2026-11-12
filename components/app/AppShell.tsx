@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Bell, Building2, ChevronDown, FileText, GraduationCap, Grid2X2, Home, LayoutGrid, Menu, MessageCircle, Phone, ReceiptText, School, Settings, User, Wallet, X, BookOpen } from 'lucide-react';
+import HelpBot from '@/components/app/HelpBot';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SignOutButton from '@/components/dashboard/SignOutButton';
 import type { NavGroup } from '@/lib/app-nav';
@@ -99,6 +100,7 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
           {bottom.slice(2).map(b => <Link key={b.href} href={b.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${active(path, b.href) ? 'text-[#0757d5]' : 'text-slate-500'}`}><b.Icon size={21} />{b.label}</Link>)}
         </div>
       </nav>
+      <HelpBot name={name} />
     </div>
   );
 }
