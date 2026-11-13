@@ -63,6 +63,14 @@ export async function getWoodpayPinPlans(network: string): Promise<WoodpayPinPla
   const body = await catalogue("pin_plans", { network: clean(network).toLowerCase() });
   return (body.plans || []).map((p: any) => ({ id: clean(p.plan_id), label: clean(p.label), face: Number(p.face_value), price: Number(p.price) })).filter((p: WoodpayPinPlan) => p.id && p.face > 0 && p.price > 0);
 }
+export async function getWoodpayIspPlans(provider: string) {
+  const body = await catalogue("isp_plans", { provider });
+  return (body.plans || []).map((p: any) => ({ id: clean(p.plan_id), name: clean(p.name), price: Number(p.price) })).filter((p: any) => p.id && p.name && Number.isFinite(p.price) && p.price > 0) as { id: string; name: string; price: number }[];
+}
+export async function woodpayVerifyIsp(provider: string, accountId: string) {
+  const { httpStatus, body } = await woodpayCall("isp_verify", "POST", { provider, account_id: accountId });
+  return httpStatus === 200 && body?.ok ? { ok: true, customerName: clean(body.customer_name) } : { ok: false, customerName: "", error: clean(body?.error) };
+}
 export const meterTypeName = (v: unknown) => (Number(v) === 2 || clean(v).toLowerCase() === "postpaid" ? "postpaid" : "prepaid");
 export async function woodpayVerifyCable(provider: string, smartcard: string) {
   const { httpStatus, body } = await woodpayCall("cable_verify", "POST", { provider, smartcard });
@@ -92,6 +100,7 @@ type Product =
   | { kind: "cable"; provider: string; plan: string; smartcard: string; phone: string; amount: number }
   | { kind: "electricity"; disco: string; meterNumber: string; meterType: string; phone: string; amount: number }
   | { kind: "exam"; exam: string; quantity: number; phone: string; amount: number }
+  | { kind: "isp"; provider: string; plan: string; accountId: string; phone: string; amount: number }
   | { kind: "pin"; network: string | null; plan: string; quantity: number; phone: string; amount: number };
 
 function normalize(order: any, profilePhone: string): Product | null {
@@ -106,6 +115,7 @@ function normalize(order: any, profilePhone: string): Product | null {
     return { kind: "cable", provider: slug.replace("-subscription", ""), plan: clean(f.provider_plan_id || f.plan_id), smartcard: clean(f.smartcard || f.smartcard_number || f.iuc_number), phone, amount: Number(f.provider_amount || 0) };
   if (slug === "electricity-bill")
     return { kind: "electricity", disco: clean(f.provider_id || f.disco_id), meterNumber: clean(f.meter_number), meterType: meterTypeName(f.meter_type || f.meter_type_id), phone, amount: Number(f.provider_amount || f.amount || 0) };
+  if (slug === "internet-subscription") return { kind: "isp", provider: clean(f.isp_provider || f.provider_id).toLowerCase(), plan: clean(f.provider_plan_id), accountId: clean(f.account_id), phone, amount: Number(f.provider_amount || 0) };
   if (slug === "exam-pins") { const e = clean(f.exam_type || f.provider_id).toLowerCase(); return { kind: "exam", exam: e === "nabt" ? "nabteb" : e, quantity: Number(f.quantity || 1), phone, amount: Number(f.provider_amount || 0) }; }
   if (slug === "data-pins") return { kind: "pin", network: networkSlug(f.network_id || f.network || f.provider_id), plan: clean(f.provider_plan_id), quantity: Number(f.quantity || 1), phone, amount: Number(f.provider_amount || 0) };
   return null;
@@ -221,11 +231,12 @@ export async function fulfillOrder(orderId: string) {
   const problem =
     !Number.isFinite(product.amount) || product.amount <= 0 ? "A valid purchase amount is missing." :
     phoneKind && !(product as any).network ? "The network is missing." :
-    product.kind !== "exam" && product.kind !== "pin" && !/^0[789][01]\d{8}$/.test(product.phone) ? "A valid 11-digit recipient phone number is required." :
+    product.kind !== "exam" && product.kind !== "pin" && product.kind !== "isp" && !/^0[789][01]\d{8}$/.test(product.phone) ? "A valid 11-digit recipient phone number is required." :
     product.kind === "airtime" && (product.amount < 50 || !Number.isInteger(product.amount)) ? "Airtime minimum is ₦50 (whole naira)." :
     product.kind === "data" && !product.plan ? "The data plan is missing." :
     product.kind === "cable" && (!product.plan || !/^\d{5,15}$/.test(product.smartcard)) ? "A valid TV package and smartcard number are required." :
     product.kind === "pin" && (!product.network || !product.plan || !Number.isInteger(product.quantity) || product.quantity < 1 || product.quantity > 50) ? "A valid network, denomination and quantity are required." :
+    product.kind === "isp" && (!["smile", "spectranet"].includes(product.provider) || !product.plan || !/^[A-Za-z0-9-]{3,30}$/.test(product.accountId)) ? "A valid provider, plan and account ID are required." :
     product.kind === "exam" && (!["waec", "neco", "nabteb"].includes(product.exam) || !Number.isInteger(product.quantity) || product.quantity < 1 || product.quantity > 10) ? "A valid exam type and quantity are required." :
     product.kind === "electricity" && (!product.disco || !/^\d{6,15}$/.test(product.meterNumber) || product.amount < 500) ? "A valid disco, meter number and amount are required." : "";
   if (problem) return markNeedsAttention(admin, order, problem);
@@ -248,6 +259,7 @@ export async function fulfillOrder(orderId: string) {
     product.kind === "airtime" ? { network: product.network, phone: product.phone, amount: product.amount, reference: rid } :
     product.kind === "data" ? { network: product.network, plan_id: product.plan, phone: product.phone, reference: rid } :
     product.kind === "pin" ? { network: product.network, plan_id: product.plan, quantity: product.quantity, reference: rid } :
+    product.kind === "isp" ? { provider: product.provider, plan_id: product.plan, account_id: product.accountId, reference: rid } :
     product.kind === "exam" ? { exam: product.exam, quantity: product.quantity, reference: rid } :
     product.kind === "cable" ? { provider: product.provider, plan_id: product.plan, smartcard: product.smartcard, phone: product.phone, reference: rid } :
     { disco: product.disco, meter_number: product.meterNumber, meter_type: product.meterType, amount: product.amount, phone: product.phone, reference: rid };

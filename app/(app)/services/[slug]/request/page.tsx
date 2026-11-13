@@ -44,10 +44,14 @@ export default function RequestService(){
  const isVTU=VTU_SLUGS.has(params.slug);
  const jambSlug=params.slug==="jamb-services"?String(form.jamb_service_slug||""):params.slug;
  const jambFields=params.slug.startsWith("jamb-")&&jambSlug?jambFieldsFor(jambSlug):[];
+ const [ispPlans,setIspPlans]=useState<{id:string;name:string;price:number}[]>([]),[ispLoading,setIspLoading]=useState(false),[ispError,setIspError]=useState("");
+ useEffect(()=>{if(params.slug!=="internet-subscription"||!form.isp_provider)return;let cancelled=false;setIspLoading(true);setIspError("");setIspPlans([]);
+  fetch("/api/vtu/catalogue?kind=isp&provider="+encodeURIComponent(form.isp_provider),{cache:"no-store"}).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.error||"Could not load plans.");return b;}).then(b=>{if(!cancelled)setIspPlans(Array.isArray(b.plans)?b.plans:[]);}).catch(e=>{if(!cancelled)setIspError(e.message||"Could not load plans.");}).finally(()=>{if(!cancelled)setIspLoading(false);});
+  return()=>{cancelled=true;};},[params.slug,form.isp_provider]);
  const [examPrices,setExamPrices]=useState<Record<string,number>>({});
  const examUnitPrice=examPrices[String(form.exam_type||"").toLowerCase()]||0;
  const examPriceConfigured=examUnitPrice>0;
- const kind=params.slug==="airtime-recharge"?"airtime":params.slug==="data-subscription"?"data":["dstv-subscription","gotv-subscription","startimes-subscription"].includes(params.slug)?"cable":params.slug==="electricity-bill"?"electricity":params.slug==="exam-pins"?"exam":params.slug==="data-pins"?"datapin":"";
+ const kind=params.slug==="airtime-recharge"?"airtime":params.slug==="data-subscription"?"data":["dstv-subscription","gotv-subscription","startimes-subscription"].includes(params.slug)?"cable":params.slug==="electricity-bill"?"electricity":params.slug==="exam-pins"?"exam":params.slug==="data-pins"?"datapin":params.slug==="internet-subscription"?"isp":"";
  const set=(k:string,v:string)=>setForm(x=>({...x,[k]:v}));
 
  useEffect(()=>{(async()=>{
@@ -135,7 +139,7 @@ export default function RequestService(){
 
 
   const providerAmount=kind==="exam"?examUnitPrice*Number(form.quantity||1):kind==="datapin"?Number(form.denomination||0)*Number(form.quantity||1):["airtime","electricity"].includes(kind)?Number(form.amount||0):Number(form.provider_amount||0);
- const rule=rules[kind]||{mode:"percent" as const,value:0};
+ const rule=rules[kind==="isp"?"data":kind]||{mode:"percent" as const,value:0};
  const serviceFee=providerAmount>0?(rule.mode==="flat"?Math.max(0,Math.round(rule.value)):Math.ceil(providerAmount*rule.value/100)):0;
  const total=providerAmount+serviceFee;
 
@@ -284,6 +288,15 @@ export default function RequestService(){
     </label>
     <label className="block text-sm font-bold">Quantity *<input type="number" min="1" max="10" step="1" value={form.quantity||"1"} onChange={e=>set("quantity",e.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
     {epinError&&<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>}
+   </div>}
+   {kind==="isp"&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+    <label className="block text-sm font-bold">Internet provider *
+     <select value={form.isp_provider||""} onChange={e=>{set("isp_provider",e.target.value);set("provider_plan_id","");set("provider_amount","");}} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">Choose provider</option><option value="smile">Smile</option><option value="spectranet">Spectranet</option></select></label>
+    <label className="block text-sm font-bold">Plan *
+     <select value={form.provider_plan_id||""} onChange={e=>{const p=ispPlans.find(x=>x.id===e.target.value);set("provider_plan_id",e.target.value);set("provider_amount",p?String(p.price):"");set("plan_name",p?p.name:"");}} required disabled={!form.isp_provider||ispLoading||ispPlans.length===0} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">{ispLoading?"Loading plans…":"Choose plan"}</option>{ispPlans.map(p=><option key={p.id} value={p.id}>{p.name} — ₦{p.price.toLocaleString()}</option>)}</select>
+     {ispError&&<span className="mt-1 block text-xs font-normal text-red-600">{ispError}</span>}</label>
+    <label className="block text-sm font-bold">{form.isp_provider==="spectranet"?"Spectranet router / account ID":"Smile account number or phone number"} *
+     <input value={form.account_id||""} onChange={e=>set("account_id",e.target.value.replace(/\s/g,""))} required minLength={3} maxLength={30} autoComplete="off" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
    </div>}
    {kind==="cable"&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
     <label className="block text-sm font-bold">TV package *

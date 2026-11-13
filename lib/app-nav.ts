@@ -5,7 +5,7 @@ export type ServiceRow = { slug: string; title: string; category: string | null 
 
 const BUY: [string, string][] = [
   ["airtime-recharge", "Airtime"], ["data-subscription", "Data"], ["dstv-subscription", "DStv"], ["gotv-subscription", "GOtv"],
-  ["startimes-subscription", "StarTimes"], ["electricity-bill", "Electricity"], ["data-pins", "Recharge PINs"],
+  ["startimes-subscription", "StarTimes"], ["electricity-bill", "Electricity"], ["internet-subscription", "Internet (Smile/Spectranet)"], ["data-pins", "Recharge PINs"],
 ];
 const OTHER_GROUPS: Record<string, [string, string]> = {
   Admissions: ["School & Admissions", "school"], "School Services": ["School & Admissions", "school"],

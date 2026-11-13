@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWoodpayCablePlans, getWoodpayDiscos } from "@/lib/woodpay";
+import { getWoodpayCablePlans, getWoodpayDiscos, getWoodpayIspPlans } from "@/lib/woodpay";
 import { examUnitPrices, EXAM_NAMES } from "@/lib/exam-prices";
 import { SERVICE_UNAVAILABLE_MESSAGE } from "@/lib/service-errors";
 
@@ -15,6 +15,10 @@ export async function GET(request: Request) {
     if (kind === "cable") {
       if (!["dstv", "gotv", "startimes"].includes(provider)) return NextResponse.json({ error: "Choose a valid TV provider." }, { status: 400 });
       return NextResponse.json({ plans: await getWoodpayCablePlans(provider) }, { headers: NO_STORE });
+    }
+    if (kind === "isp") {
+      if (!["smile", "spectranet"].includes(provider)) return NextResponse.json({ error: "Choose a valid internet provider." }, { status: 400 });
+      return NextResponse.json({ plans: await getWoodpayIspPlans(provider) }, { headers: NO_STORE });
     }
     if (kind === "electricity") {
       const providers = (await getWoodpayDiscos()).map(name => ({ id: name, name }));

@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import {createClient} from "@/lib/supabase/server";
 import {createAdminClient} from "@/lib/supabase/admin";
-import {getWoodpayPinPlans,getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
+import {getWoodpayIspPlans,woodpayVerifyIsp,getWoodpayPinPlans,getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
 import {examUnitPrices} from "@/lib/exam-prices";
 import {JAMB_SERVICE_PRICES} from "@/lib/jamb-prices";
@@ -100,6 +100,20 @@ export async function POST(request:Request){
    const fee=feeFor(rules.electricity,purchaseAmount);
    finalAmount=purchaseAmount+fee;
    verifiedFormData={...verifiedFormData,provider_id:disco,meter_number:meterNumber,meter_type:meterType==="postpaid"?2:1,provider_amount:String(purchaseAmount),service_fee:String(fee),service_fee_rate:ruleLabel(rules.electricity),verified_customer_name:verification.customerName};
+  }
+
+  if(slug==="internet-subscription"){
+   const provider=clean(formData.isp_provider).toLowerCase();
+   const planId=clean(formData.provider_plan_id);
+   const accountId=clean(formData.account_id);
+   if(!["smile","spectranet"].includes(provider)||!planId||!/^[A-Za-z0-9-]{3,30}$/.test(accountId))return NextResponse.json({error:"Choose a provider and plan, and enter a valid account / router ID."},{status:400});
+   const plan=(await getWoodpayIspPlans(provider)).find(p=>p.id===planId);
+   if(!plan)return NextResponse.json({error:"That plan is no longer available. Refresh and choose another."},{status:409});
+   const verification=await woodpayVerifyIsp(provider,accountId);
+   if(!verification.ok)return NextResponse.json({error:"We could not verify that account. Check the ID and try again."},{status:422});
+   const fee=feeFor(rules.data,plan.price);
+   finalAmount=plan.price+fee;
+   verifiedFormData={...verifiedFormData,isp_provider:provider,provider_plan_id:planId,plan_name:plan.name,provider_amount:String(plan.price),service_fee:String(fee),service_fee_rate:ruleLabel(rules.data),account_id:accountId,verified_customer_name:verification.customerName};
   }
 
   // Exam PINs and recharge-card PINs are NOT on the WoodPay API. They are priced here and delivered manually by staff.
