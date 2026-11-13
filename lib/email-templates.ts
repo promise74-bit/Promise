@@ -141,3 +141,17 @@ export function broadcastEmail(a: { subject: string; message: string; siteUrl: s
     }),
   };
 }
+
+export function pinResetEmail(a: { name?: string | null; code: string; siteUrl: string }) {
+  return {
+    subject: 'Your Promise Computer Research PIN reset code',
+    html: layout({
+      siteUrl: a.siteUrl, emoji: '🔐', heading: 'Reset your payment PIN',
+      preheader: `Your code is ${a.code}`,
+      body: p(`Hi ${esc(first(a.name))},`)
+        + p('Use this code to choose a new payment PIN. It expires in 10 minutes.')
+        + `<div style="margin:22px 0;text-align:center;font:900 36px ${FONT};letter-spacing:10px;color:${BLUE}">${esc(a.code)}</div>`
+        + `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 16px">${small('<b style="color:#9a3412">Didn’t ask for this?</b> Ignore this email and your PIN stays the same. Never share this code with anyone.')}</div>`,
+    }),
+  };
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Lock, X } from 'lucide-react';
+import PinResetModal from '@/components/wallet/PinResetModal';
 
 type Props = {
   open: boolean;
@@ -15,7 +16,7 @@ type Props = {
 export default function PinModal({ open, mode, title, onClose, onPin, onSaved }: Props) {
   const [hasPin, setHasPin] = useState<boolean | null>(null);
   const [pin, setPin] = useState(''); const [confirm, setConfirm] = useState(''); const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [reset, setReset] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,8 +61,10 @@ export default function PinModal({ open, mode, title, onClose, onPin, onSaved }:
           </>}
           {error && <p className={'text-sm ' + (error.startsWith('PIN saved') ? 'text-emerald-600' : 'text-red-600')}>{error}</p>}
           <button disabled={busy} className="w-full rounded-xl bg-[#0757d5] py-3 text-sm font-bold text-white disabled:opacity-60">{busy ? 'Please wait…' : creating ? (mode === 'manage' ? 'Save PIN' : 'Save PIN and continue') : 'Confirm and pay'}</button>
+          {hasPin && <button type="button" onClick={() => setReset(true)} className="w-full text-sm font-semibold text-slate-500 hover:text-[#0757d5]">Forgot PIN?</button>}
         </div>}
       </form>
+      <PinResetModal open={reset} onClose={() => setReset(false)} onDone={() => { setReset(false); setHasPin(true); setError('PIN saved. Enter it again to pay.'); onSaved?.(); }} />
     </div>
   );
 }
