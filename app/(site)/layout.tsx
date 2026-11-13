@@ -1,7 +1,5 @@
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import HelpBot from '@/components/app/HelpBot';
 
 export default function SiteLayout({children}:{children:React.ReactNode}){
-  return <><Header/>{children}<Footer/><div className="h-14" aria-hidden /><HelpBot /></>;
+  return <><Header/>{children}<p className="py-6 text-center text-xs text-slate-400">© {new Date().getFullYear()} Promise Computer Research</p></>;
 }

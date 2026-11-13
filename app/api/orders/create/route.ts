@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import {createClient} from "@/lib/supabase/server";
 import {createAdminClient} from "@/lib/supabase/admin";
-import {getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
+import {getWoodpayPinPlans,getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyCable,woodpayVerifyElectricity,meterTypeName} from "@/lib/woodpay";
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
 import {examUnitPrices} from "@/lib/exam-prices";
 import {JAMB_SERVICE_PRICES} from "@/lib/jamb-prices";
@@ -122,10 +122,13 @@ export async function POST(request:Request){
    const quantity=Number(formData.quantity||1);
    if(!["mtn","airtel","glo","9mobile"].includes(network)||!Number.isInteger(quantity)||quantity<1||quantity>10)return NextResponse.json({error:"Choose a supported network and quantity from 1 to 10."},{status:400});
    if(![100,200,500,1000,2000,5000,10000,20000].includes(denomination))return NextResponse.json({error:"That denomination is not currently available for this network."},{status:409});
-   const providerAmount=denomination*quantity;
+   const plan=(await getWoodpayPinPlans(network)).find(p=>p.face===denomination);
+   if(!plan)return NextResponse.json({error:"That denomination is not currently available for this network."},{status:409});
+   const unitPrice=Math.max(denomination,plan.price); // never below our cost
+   const providerAmount=unitPrice*quantity;
    const fee=serviceFee(providerAmount,5);
    finalAmount=providerAmount+fee;
-   verifiedFormData={...verifiedFormData,network,provider_id:network,denomination,quantity,provider_amount:String(providerAmount),unit_price:String(denomination),service_fee:String(fee),service_fee_rate:"5%"};
+   verifiedFormData={...verifiedFormData,network,provider_id:network,provider_plan_id:plan.id,plan_name:plan.label,denomination,quantity,provider_amount:String(providerAmount),unit_price:String(unitPrice),service_fee:String(fee),service_fee_rate:"5%"};
   }
 
   const requiresQuote=!VTU_SLUGS.has(slug)&&finalAmount===0&&(service.price_type!=="fixed"||Number(service.price||0)<=0);
