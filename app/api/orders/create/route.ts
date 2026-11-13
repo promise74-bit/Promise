@@ -5,6 +5,7 @@ import {getWoodpayDataPlans,getWoodpayCablePlans,getWoodpayDiscos,woodpayVerifyC
 import {getMarkupRules,feeFor,ruleLabel} from "@/lib/markup";
 import {examUnitPrices} from "@/lib/exam-prices";
 import {JAMB_SERVICE_PRICES} from "@/lib/jamb-prices";
+import {jambFieldsFor} from "@/lib/jamb-fields";
 import {customerSafeError} from "@/lib/service-errors";
 import {sendOrderEmail} from "@/lib/order-emails";
 
@@ -37,6 +38,14 @@ export async function POST(request:Request){
   let verifiedFormData:Record<string,any>={...formData};
 
   const rules=await getMarkupRules(admin);
+  if(String(service.category||"").trim().toUpperCase()==="JAMB"&&slug!=="jamb-services"){
+   const defs=jambFieldsFor(slug);
+   const missing=defs.filter(f=>f.required&&!clean(formData[f.key]));
+   if(missing.length)return NextResponse.json({error:"Please fill in: "+missing.map(f=>f.label).join(", ")+"."},{status:400});
+   const bad=defs.find(f=>f.pattern&&clean(formData[f.key])&&!f.pattern.test(clean(formData[f.key])));
+   if(bad)return NextResponse.json({error:bad.label+" does not look right. Please check it."},{status:400});
+   for(const k of Object.keys(verifiedFormData))if(k.startsWith("jamb_")&&typeof verifiedFormData[k]==="string")verifiedFormData[k]=String(verifiedFormData[k]).trim().slice(0,200);
+  }
   if(String(service.category||"").trim().toUpperCase()==="JAMB"&&slug!=="jamb-services"&&finalAmount>0){
    const fee=feeFor(rules.jamb,finalAmount);
    verifiedFormData={...verifiedFormData,list_price:String(finalAmount),service_fee:String(fee),service_fee_rate:ruleLabel(rules.jamb)};

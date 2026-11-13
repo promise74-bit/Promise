@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect,useState,useRef} from "react";
+import {jambFieldsFor,jambNoteFor} from "@/lib/jamb-fields";
 import {useParams,useRouter} from "next/navigation";
 import {createClient} from "@/lib/supabase/client";
 
@@ -41,6 +42,8 @@ export default function RequestService(){
  const [epinDenominations,setEpinDenominations]=useState<EpinDenomination[]>([]),[epinLoading,setEpinLoading]=useState(false),[epinError,setEpinError]=useState("");
 
  const isVTU=VTU_SLUGS.has(params.slug);
+ const jambSlug=params.slug==="jamb-services"?String(form.jamb_service_slug||""):params.slug;
+ const jambFields=params.slug.startsWith("jamb-")&&jambSlug?jambFieldsFor(jambSlug):[];
  const [examPrices,setExamPrices]=useState<Record<string,number>>({});
  const examUnitPrice=examPrices[String(form.exam_type||"").toLowerCase()]||0;
  const examPriceConfigured=examUnitPrice>0;
@@ -311,6 +314,15 @@ export default function RequestService(){
    </div>}
    {params.slug!=="jamb-services"&&fields.filter(f=>!(isVTU&&(isInternalProviderField(f)||["cable","electricity","exam","datapin"].includes(kind)||((kind==="data"||kind==="cable")&&f.field_key==="amount")||(kind==="data"&&f.field_key==="network")))).map(f=><label key={f.field_key} className="block text-sm font-bold">{f.label}{f.required&&<span className="text-red-500"> *</span>}{renderField(f)}</label>)}
    {isVTU&&providerAmount>0&&<div className="rounded-2xl bg-slate-50 p-4 text-sm"><div className="flex justify-between"><span>Provider amount</span><b>₦{providerAmount.toLocaleString()}</b></div><div className="mt-2 flex justify-between"><span>Service fee</span><b>₦{serviceFee.toLocaleString()}</b></div><div className="mt-3 flex justify-between border-t pt-3 text-base"><span className="font-black">Total to pay</span><b>₦{total.toLocaleString()}</b></div></div>}
+   {jambFields.length>0&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+    <div><p className="font-black">Your JAMB details</p><p className="text-xs text-slate-500">Enter them exactly as they appear on your JAMB profile. Our team uses these to process your request.</p></div>
+    {jambNoteFor(jambSlug)&&<p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">{jambNoteFor(jambSlug)}</p>}
+    {jambFields.map(f=><label key={f.key} className="block text-sm font-bold">{f.label}{f.required&&<span className="text-red-500"> *</span>}
+     {f.type==="select"
+      ?<select required={f.required} value={form[f.key]||""} onChange={e=>set(f.key,e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">Select</option>{(f.options||[]).map(o=><option key={o} value={o}>{o}</option>)}</select>
+      :<input type={f.type} required={f.required} value={form[f.key]||""} onChange={e=>set(f.key,e.target.value)} placeholder={f.placeholder} autoComplete="off" maxLength={f.max||120} pattern={f.pattern?f.pattern.source:undefined} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/>}
+     {f.help&&<span className="mt-1 block text-xs font-normal text-slate-500">{f.help}</span>}</label>)}
+   </div>}
    <label className="block text-sm font-bold">Request details{!fields.length&&!isVTU&&params.slug!=="jamb-services"&&<span className="text-red-500"> *</span>}<textarea required={!fields.length&&!isVTU&&params.slug!=="jamb-services"} value={form.request_details??""} onChange={e=>set("request_details",e.target.value)} rows={5} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3" placeholder="Tell us anything else we should know."/></label>
    <button disabled={loading||(kind==="data"&&(!form.provider_plan_id||plansLoading||Boolean(plansError)))||(kind==="cable"&&(!form.provider_plan_id||!form.smartcard||cableLoading||Boolean(cableError)))||(kind==="electricity"&&(!form.provider_id||!form.meter_number||Number(form.amount)<1000||utilityLoading||Boolean(utilityError)))||(kind==="exam"&&(!form.exam_type||!Number.isInteger(Number(form.quantity))||Number(form.quantity)<1||Number(form.quantity)>10||!examPriceConfigured||utilityLoading||Boolean(utilityError)))||(kind==="datapin"&&(!form.denomination||!Number.isInteger(Number(form.quantity))||Number(form.quantity)<1||Number(form.quantity)>10||epinLoading||Boolean(epinError)))} className="w-full rounded-xl bg-[#0757d5] px-5 py-3.5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{loading?"Submitting…":params.slug==="jamb-services"?"Continue to payment":kind==="exam"&&!examPriceConfigured?"Price unavailable":isVTU&&total>0?"Continue to payment":"Submit"}</button>
   </form>
