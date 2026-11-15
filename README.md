@@ -53,3 +53,16 @@ Environment variables (server-side only, never `NEXT_PUBLIC_`):
 **Wallet:** orders are paid from your WoodPay wallet. Keep it funded; Admin → WoodPay Connection shows the balance.
 
 **Not on WoodPay:** exam PINs and recharge-card PINs. They are still sold on the site but staff deliver them manually (Admin → order → Manual delivery).
+
+## In-app wallet funding (Flutterwave, like WoodPay)
+
+Wallet → "Fund wallet by bank transfer" offers two ways, both credited automatically:
+- **Without NIN:** a one-time account for one exact amount (webhook matches the transaction reference).
+- **Permanent account (NIN):** the customer's own account number, created from their name + NIN.
+
+Environment variables (server-side only):
+- `FLW_SECRET_KEY` — Flutterwave secret key (virtual accounts must be enabled on your Flutterwave account).
+- `FLW_WEBHOOK_SECRET_HASH` — the secret hash you set in Flutterwave → Settings → Webhooks.
+- Webhook URL: `https://<your-domain>/api/flutterwave/webhook`
+
+If `FLW_SECRET_KEY` is not set, the card falls back to the Paystack dedicated account (when Paystack enables it).

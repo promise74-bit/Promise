@@ -20,7 +20,7 @@ export default function BalanceCard({ balance }: { balance: number }) {
       <p className="relative mt-2 flex items-baseline gap-1 font-mono text-4xl font-semibold sm:text-5xl">
         <small className="text-xl font-medium opacity-60">₦</small>{hidden ? '••••••' : <>{whole}<small className="text-xl font-medium opacity-60">.{kobo}</small></>}
       </p>
-      <Link href="#fund" className="relative mt-5 flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm font-bold backdrop-blur hover:bg-white/15">
+      <Link href="#transfer" className="relative mt-5 flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm font-bold backdrop-blur hover:bg-white/15">
         <span className="flex items-center gap-2"><Plus size={18} strokeWidth={2.5} /> Fund wallet</span><ChevronRight size={18} className="opacity-70" />
       </Link>
     </section>
