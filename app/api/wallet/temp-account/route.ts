@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createTempAccount, flwConfigured, FlwError } from '@/lib/flutterwave';
+import { createTempAccount, TransferError } from '@/lib/wallet-transfer';
 import { MAX_FUNDING, MIN_FUNDING } from '@/lib/wallet';
 
 export const dynamic = 'force-dynamic';
@@ -10,13 +10,12 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !user.email) return NextResponse.json({ error: 'You must be logged in.' }, { status: 401 });
-  if (!flwConfigured()) return NextResponse.json({ error: 'Bank transfer funding is not available yet. Please fund with your card.' }, { status: 503 });
   const body = await request.json().catch(() => ({}));
   const amount = Number(body.amount);
   if (!Number.isInteger(amount) || amount < MIN_FUNDING || amount > MAX_FUNDING) return NextResponse.json({ error: `Enter a whole amount from ₦${MIN_FUNDING.toLocaleString()} to ₦${MAX_FUNDING.toLocaleString()}.` }, { status: 400 });
   try { return NextResponse.json(await createTempAccount({ id: user.id, email: user.email }, amount)); }
   catch (e) {
-    if (e instanceof FlwError) return NextResponse.json({ error: e.message }, { status: e.code === 'RATE' ? 429 : 503 });
+    if (e instanceof TransferError) return NextResponse.json({ error: e.message }, { status: e.code === 'RATE' ? 429 : 503 });
     console.error('[wallet] temp account failed', e instanceof Error ? e.message : e);
     return NextResponse.json({ error: 'Could not create the transfer account. Please try again.' }, { status: 500 });
   }

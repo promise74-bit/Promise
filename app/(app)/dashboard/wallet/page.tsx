@@ -3,7 +3,6 @@ import { ArrowDownLeft, ArrowUpRight, RotateCcw, CreditCard, Smartphone, Tv, Wif
 import { createClient } from '@/lib/supabase/server';
 import { MAX_FUNDING, MIN_FUNDING } from '@/lib/wallet';
 import { getWalletAccount } from '@/lib/wallet-transfer';
-import { flwConfigured } from '@/lib/flutterwave';
 import FundWalletForm from './FundWalletForm';
 import BankTransferCard from './BankTransferCard';
 import PinSettings from './PinSettings';
@@ -70,7 +69,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
           <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-[#0757d5]"><CreditCard size={20} /></span><h2 className="text-lg font-black">Fund with card</h2></div>
           <FundWalletForm min={MIN_FUNDING} max={MAX_FUNDING} />
         </section>
-        <BankTransferCard account={account} provider={flwConfigured() ? 'flw' : 'paystack'} balance={balance} min={MIN_FUNDING} max={MAX_FUNDING} />
+        <BankTransferCard account={account} balance={balance} min={MIN_FUNDING} max={MAX_FUNDING} />
       </div>
 
       <PinSettings />

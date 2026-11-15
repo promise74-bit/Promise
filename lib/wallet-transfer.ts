@@ -45,6 +45,33 @@ export async function ensureWalletAccount(user: { id: string; email: string }, p
   return { bank_name: row.bank_name, account_number: row.account_number, account_name: row.account_name };
 }
 
+export class TransferError extends Error { constructor(public code: 'RATE' | 'UNAVAILABLE', message: string) { super(message); } }
+
+// Reads Paystack's "Pay with Transfer" charge reply. Returns null when no account number came back.
+export function parseTransferCharge(json: any) {
+  const d = json?.data || {};
+  const accountNumber = clean(d.account_number || d.authorization?.account_number);
+  if (!accountNumber) return null;
+  return { accountNumber, bankName: clean(d.bank?.name || d.bank_name) || 'Bank transfer', accountName: clean(d.account_name) || 'Promise Computer Research', expiresAt: clean(d.account_expires_at || d.expires_at) };
+}
+
+// "Fund without NIN": a one-time Paystack account for ONE amount. The transfer is credited by the existing Paystack webhook
+// (charge.success -> pending wallet funding with this reference -> amount check -> credit). Paystack signs webhooks with your secret key.
+export async function createTempAccount(user: { id: string; email: string }, amount: number) {
+  const admin = createAdminClient();
+  const since = new Date(Date.now() - 3600_000).toISOString();
+  const { count } = await admin.from('wallet_transactions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('kind', 'funding').eq('status', 'pending').like('reference', 'PCRVA%').gte('created_at', since);
+  if ((count || 0) >= 5) throw new TransferError('RATE', 'You have several unpaid transfer requests. Please complete one or wait an hour, then try again.');
+  const reference = `PCRVA${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const expires = new Date(Date.now() + 30 * 60_000).toISOString();
+  const r = await paystack('/charge', 'POST', { email: user.email, amount: amount * 100, reference, bank_transfer: { account_expires_at: expires }, metadata: { wallet_funding: true, customer_id: user.id } });
+  const acct = r.ok ? parseTransferCharge(r.json) : null;
+  if (!acct) { console.error('[wallet] paystack transfer account failed', clean(r.json?.message).slice(0, 200)); throw new TransferError('UNAVAILABLE', 'We could not create a transfer account right now. Please try again shortly, or fund with your card.'); }
+  const { error } = await admin.from('wallet_transactions').insert({ user_id: user.id, kind: 'funding', direction: 'credit', amount, status: 'pending', reference, description: 'Wallet funding by bank transfer', metadata: { channel: 'bank_transfer_once', bank: acct.bankName, account: acct.accountNumber, expires: acct.expiresAt || expires } });
+  if (error) throw new Error('Could not record the request: ' + error.message);
+  return { accountNumber: acct.accountNumber, bankName: acct.bankName, accountName: acct.accountName, amount, reference, expiresAt: acct.expiresAt || expires };
+}
+
 // Called by the Paystack webhook. Returns null when the event is not a dedicated-account transfer.
 export async function creditTransfer(data: any) {
   const channel = clean(data?.channel || data?.authorization?.channel);

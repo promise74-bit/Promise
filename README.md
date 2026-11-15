@@ -54,15 +54,12 @@ Environment variables (server-side only, never `NEXT_PUBLIC_`):
 
 **Not on WoodPay:** exam PINs and recharge-card PINs. They are still sold on the site but staff deliver them manually (Admin → order → Manual delivery).
 
-## In-app wallet funding (Flutterwave, like WoodPay)
+## In-app wallet funding (Paystack)
 
-Wallet → "Fund wallet by bank transfer" offers two ways, both credited automatically:
-- **Without NIN:** a one-time account for one exact amount (webhook matches the transaction reference).
-- **Permanent account (NIN):** the customer's own account number, created from their name + NIN.
+Wallet → "Fund wallet by bank transfer" offers, with no NIN needed:
+- **One-time account:** the customer picks an amount and gets a one-time account for exactly that amount (Paystack "Pay with Transfer").
+  It is credited by the normal Paystack webhook (`charge.success` → pending funding with that reference → amount check → credit).
+- **Permanent account:** the customer's own Paystack dedicated account (Paystack must enable Dedicated Virtual Accounts on your account).
 
-Environment variables (server-side only):
-- `FLW_SECRET_KEY` — Flutterwave secret key (virtual accounts must be enabled on your Flutterwave account).
-- `FLW_WEBHOOK_SECRET_HASH` — the secret hash you set in Flutterwave → Settings → Webhooks.
-- Webhook URL: `https://<your-domain>/api/flutterwave/webhook`
-
-If `FLW_SECRET_KEY` is not set, the card falls back to the Paystack dedicated account (when Paystack enables it).
+Only `PAYSTACK_SECRET_KEY` is needed. Paystack signs webhooks with that same key, so there is no separate "secret hash".
+Webhook URL (Paystack dashboard → Settings → API Keys & Webhooks): `https://<your-domain>/api/paystack/webhook`

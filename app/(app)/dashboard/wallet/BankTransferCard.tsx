@@ -6,19 +6,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Landmark } from 'lucide-react';
 
 type Account = { bank_name: string; account_number: string; account_name: string } | null;
-type Temp = { accountNumber: string; bankName: string; amount: number; reference: string; expiresAt: string };
+type Temp = { accountNumber: string; bankName: string; accountName: string; amount: number; reference: string; expiresAt: string };
 const CHIPS = [500, 1000, 2000, 5000, 10000];
 
 function useCopy() { const [done, setDone] = useState(''); return { done, copy: (t: string) => navigator.clipboard?.writeText(t).then(() => { setDone(t); setTimeout(() => setDone(''), 1800); }).catch(() => {}) }; }
 
 // In-app funding like WoodPay: a bank-card-style account the customer can transfer to. Works with or without a NIN.
-export default function BankTransferCard({ account, provider, balance, min, max }: { account: Account; provider: 'flw' | 'paystack'; balance: number; min: number; max: number }) {
+export default function BankTransferCard({ account, balance, min, max }: { account: Account; balance: number; min: number; max: number }) {
   const router = useRouter(); const { done, copy } = useCopy();
   const [tab, setTab] = useState<'once' | 'permanent'>('once');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [needPhone, setNeedPhone] = useState(false);
   const [amount, setAmount] = useState(''); const [temp, setTemp] = useState<Temp | null>(null);
-  const [nin, setNin] = useState(''); const [ninName, setNinName] = useState('');
-  const startBalance = useRef(balance); const [credited, setCredited] = useState(false);
+    const startBalance = useRef(balance); const [credited, setCredited] = useState(false);
 
   // While a one-time account is open, check for the payment every 10 seconds.
   useEffect(() => { if (!temp || credited) return; const id = setInterval(() => router.refresh(), 10000); return () => clearInterval(id); }, [temp, credited, router]);
@@ -30,8 +29,7 @@ export default function BankTransferCard({ account, provider, balance, min, max 
     catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); return null; } finally { setBusy(false); }
   }
   async function makeTemp(e: React.FormEvent) { e.preventDefault(); const n = Number(amount); if (!Number.isInteger(n) || n < min || n > max) { setError(`Enter a whole amount from ₦${min.toLocaleString()} to ₦${max.toLocaleString()}.`); return; } startBalance.current = balance; setCredited(false); const d = await post('/api/wallet/temp-account', { amount: n }); if (d) setTemp(d); }
-  async function makePermanent(e: React.FormEvent) { e.preventDefault(); const d = await post('/api/wallet/account', { nin, ninName }); if (d) router.refresh(); }
-  async function makePaystack() { const d = await post('/api/wallet/account', {}); if (d) router.refresh(); }
+  async function makePermanent() { const d = await post('/api/wallet/account', {}); if (d) router.refresh(); }
 
   const bankCard = (bank: string, number: string, name: string, note: string, extra?: React.ReactNode) => (
     <div>
@@ -55,36 +53,30 @@ export default function BankTransferCard({ account, provider, balance, min, max 
 
       <div className="mt-4">
         {account ? bankCard(account.bank_name, account.account_number, account.account_name, 'This is your own permanent account number. Send any amount to it from any bank app and your wallet is credited automatically, usually within a minute.')
-        : provider === 'paystack' ? (
-          <div><p className="text-sm text-slate-600">Get your own account number. Transfer from any bank app and your wallet is credited automatically.</p>
-            <button onClick={makePaystack} disabled={busy} className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-60">{busy ? 'Creating…' : 'Get my account number'}</button></div>
-        ) : (
+        : (
           <>
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 text-xs font-bold">
               <button onClick={() => { setTab('once'); setError(''); }} className={'rounded-lg py-2.5 ' + (tab === 'once' ? 'bg-white shadow' : 'text-slate-500')}>Without NIN</button>
-              <button onClick={() => { setTab('permanent'); setError(''); setTemp(null); }} className={'rounded-lg py-2.5 ' + (tab === 'permanent' ? 'bg-white shadow' : 'text-slate-500')}>Permanent account (NIN)</button>
+              <button onClick={() => { setTab('permanent'); setError(''); setTemp(null); }} className={'rounded-lg py-2.5 ' + (tab === 'permanent' ? 'bg-white shadow' : 'text-slate-500')}>My permanent account</button>
             </div>
 
             {tab === 'once' && (temp ? (credited
               ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center"><p className="font-black text-emerald-800">₦{temp.amount.toLocaleString()} received 🎉</p><p className="mt-1 text-sm text-emerald-700">Your wallet has been credited.</p><button onClick={() => { setTemp(null); setAmount(''); }} className="mt-3 text-sm font-bold text-emerald-700 underline">Fund again</button></div>
-              : <div className="mt-4">{bankCard(temp.bankName, temp.accountNumber, 'Promise Computer Research', `Transfer exactly ₦${temp.amount.toLocaleString()} to this account${temp.expiresAt ? ' before it expires' : ''}. This page checks for your payment automatically. A different amount will not be credited.`,
+              : <div className="mt-4">{bankCard(temp.bankName, temp.accountNumber, temp.accountName, `Transfer exactly ₦${temp.amount.toLocaleString()} to this account${temp.expiresAt ? ' before it expires' : ''}. This page checks for your payment automatically. A different amount will not be credited.`,
                   <p className="relative mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold">Pay exactly ₦{temp.amount.toLocaleString()}</p>)}
                   <button onClick={() => setTemp(null)} className="mt-3 text-xs font-bold text-slate-500 underline">Use a different amount</button></div>)
               : <form onSubmit={makeTemp} className="mt-4 space-y-3">
-                  <p className="text-sm text-slate-600">No NIN needed. Choose an amount and we create a one-time account for it.</p>
+                  <p className="text-sm text-slate-600">Choose an amount and we create a one-time account for it. No extra details needed.</p>
                   <input type="number" inputMode="numeric" min={min} max={max} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount (₦)" className={inp} required />
                   <div className="flex flex-wrap gap-2">{CHIPS.filter(c => c >= min && c <= max).map(c => <button type="button" key={c} onClick={() => setAmount(String(c))} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold hover:border-[#0757d5]">₦{c.toLocaleString()}</button>)}</div>
                   <button disabled={busy} className="w-full rounded-xl bg-[#0757d5] py-3 text-sm font-bold text-white disabled:opacity-60">{busy ? 'Creating account…' : 'Generate account'}</button>
                 </form>)}
 
             {tab === 'permanent' && (
-              <form onSubmit={makePermanent} className="mt-4 space-y-3">
-                <p className="text-sm text-slate-600">Get your own account number that never expires. Enter your name and NIN exactly as on your NIN record.</p>
-                <input value={ninName} onChange={e => setNinName(e.target.value)} placeholder="Full name as on your NIN" className={inp} required />
-                <input value={nin} onChange={e => setNin(e.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" placeholder="NIN (11 digits)" className={inp} required />
-                <button disabled={busy} className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white disabled:opacity-60">{busy ? 'Creating account…' : 'Create my account'}</button>
-                <p className="text-[11px] text-slate-400">Your NIN is sent securely to our payment partner to open the account. We do not store it.</p>
-              </form>)}
+              <div className="mt-4 space-y-3">
+                <p className="text-sm text-slate-600">Get your own account number that never expires. Send any amount to it, any time, and your wallet is credited automatically.</p>
+                <button onClick={makePermanent} disabled={busy} className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white disabled:opacity-60">{busy ? 'Creating account…' : 'Create my permanent account'}</button>
+              </div>)}
           </>)}
         {error && <p className="mt-3 text-sm text-red-600">{error} {needPhone && <Link href="/dashboard/profile" className="font-bold underline">Open profile</Link>}</p>}
       </div>
