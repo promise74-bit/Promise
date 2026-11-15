@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LogIn, MessageCircle, Smartphone, Wifi, Zap, Tv, GraduationCap, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import FeedbackBox from '@/components/FeedbackBox';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ export default async function Landing() {
         <span className="mt-6 rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-bold text-[#0757d5]">Ekpoma, Edo State</span>
         <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-[#0b1730]">Promise <span className="text-[#0757d5]">Computer Research</span></h1>
         <p className="mt-3 text-base leading-7 text-slate-600">Fast, reliable airtime, data, bills, exam PINs and JAMB services, all from one wallet.</p>
+
+        <FeedbackBox />
 
         <div className="mt-8 grid w-full gap-3">
           <Link href="/login" className="flex items-center justify-center gap-2 rounded-2xl bg-[#0757d5] px-6 py-5 text-lg font-black text-white shadow-lg shadow-blue-600/25 transition hover:bg-[#0646ad] active:scale-[.98]"><LogIn size={22} /> Log in</Link>
