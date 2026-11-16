@@ -5,9 +5,12 @@ export default function manifest():MetadataRoute.Manifest{
     name:'Promise Computer Research',
     short_name:'Promise',
     description:'JAMB, WAEC, NECO, school fees, airtime, data, TV, electricity and academic support services.',
-    start_url:'/?source=pwa',
+    id:'/',
+    start_url:'/dashboard?source=pwa',
     scope:'/',
     display:'standalone',
+    display_override:['standalone','minimal-ui'],
+    prefer_related_applications:false,
     orientation:'portrait',
     background_color:'#ffffff',
     theme_color:'#0757d5',
@@ -19,6 +22,7 @@ export default function manifest():MetadataRoute.Manifest{
     ],
     shortcuts:[
       {name:'My Wallet',url:'/dashboard/wallet',icons:[{src:'/icon-192.png',sizes:'192x192'}]},
+      {name:'Notifications',url:'/dashboard/notifications',icons:[{src:'/icon-192.png',sizes:'192x192'}]},
       {name:'Services',url:'/services',icons:[{src:'/icon-192.png',sizes:'192x192'}]},
       {name:'My Orders',url:'/dashboard/orders',icons:[{src:'/icon-192.png',sizes:'192x192'}]}
     ]

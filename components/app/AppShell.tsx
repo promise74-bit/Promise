@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Facebook, Bell, Building2, ChevronDown, FileText, GraduationCap, Grid2X2, Home, LayoutGrid, Menu, MessageCircle, Phone, ReceiptText, School, Settings, User, Wallet, X, BookOpen } from 'lucide-react';
 import HelpBot from '@/components/app/HelpBot';
+import InstallButton from '@/components/pwa/InstallButton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SignOutButton from '@/components/dashboard/SignOutButton';
 import type { NavGroup } from '@/lib/app-nav';
@@ -51,6 +52,7 @@ function SideNav({ groups, path, unread, isAdmin, onNavigate }: { groups: NavGro
       {row('/faq', 'FAQ', MessageCircle)}
       {row('/contact', 'Contact us', Phone)}
       {isAdmin && row('/admin', 'Admin', Settings)}
+      <InstallButton />
       <a href="https://wa.me/2347058391188" target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"><MessageCircle size={18} /> Help on WhatsApp</a>
       <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"><Facebook size={18} /> Follow us on Facebook</a>
     </nav>

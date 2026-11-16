@@ -37,6 +37,22 @@ export async function POST(request: Request) {
     if (!['test', 'one', 'all'].includes(audience)) return NextResponse.json({ error: 'Choose who to send to.' }, { status: 400 });
 
     const admin = createAdminClient();
+    const sendAtRaw = String(b.sendAt || '');
+    if (sendAtRaw) { // schedule instead of sending now
+      const t = new Date(sendAtRaw).getTime();
+      if (audience === 'test') return NextResponse.json({ error: 'Test messages are sent immediately.' }, { status: 400 });
+      if (!Number.isFinite(t) || t < Date.now() + 30_000 || t > Date.now() + 366 * 86400_000) return NextResponse.json({ error: 'Pick a time at least a minute from now (within a year).' }, { status: 400 });
+      let userId: string | null = null;
+      if (audience === 'one') {
+        const email = String(b.email || '').trim();
+        if (!email) return NextResponse.json({ error: 'Enter the customer’s email address.' }, { status: 400 });
+        userId = await findUserIdByEmail(email);
+        if (!userId) return NextResponse.json({ error: 'No customer found with that email.' }, { status: 404 });
+      }
+      const { error } = await admin.from('scheduled_notifications').insert({ title, message, audience, user_id: userId, send_at: new Date(t).toISOString(), created_by: adminUser.id });
+      if (error) { console.error('Schedule failed:', error.message); return NextResponse.json({ error: 'Could not schedule. Has the scheduling SQL been run?' }, { status: 500 }); }
+      return NextResponse.json({ ok: true, scheduled: true, sendAt: new Date(t).toISOString() });
+    }
     let ids: string[] = [];
     if (audience === 'test') {
       ids = [adminUser.id];
@@ -63,4 +79,18 @@ export async function POST(request: Request) {
     console.error('Admin notify failed:', e);
     return NextResponse.json({ error: 'Could not send the notification.' }, { status: 500 });
   }
+}
+
+export async function GET() {
+  if (!(await requireAdmin())) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  const { data, error } = await createAdminClient().from('scheduled_notifications').select('id,title,audience,send_at,status,recipients').order('send_at', { ascending: false }).limit(15);
+  if (error) return NextResponse.json({ items: [], error: 'Scheduling is not set up yet.' });
+  return NextResponse.json({ items: data || [] });
+}
+
+export async function DELETE(request: Request) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  const b = await request.json().catch(() => ({}));
+  const { error } = await createAdminClient().from('scheduled_notifications').update({ status: 'cancelled' }).eq('id', String(b.id || '')).eq('status', 'pending');
+  return error ? NextResponse.json({ error: 'Could not cancel.' }, { status: 500 }) : NextResponse.json({ ok: true });
 }

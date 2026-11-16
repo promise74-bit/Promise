@@ -18,7 +18,7 @@ export default function PwaRegister(){
     const standalone=window.matchMedia('(display-mode: standalone)').matches||(navigator as any).standalone===true;
     if(standalone||snoozed())return;
 
-    const onPrompt=(e:Event)=>{e.preventDefault();setInstallEvent(e as InstallEvent);};
+    const onPrompt=(e:Event)=>{e.preventDefault();(window as any).__pcrInstall=e;window.dispatchEvent(new Event('pcr-install-ready'));setInstallEvent(e as InstallEvent);};
     const onInstalled=()=>{setInstallEvent(null);setIosHint(false);};
     window.addEventListener('beforeinstallprompt',onPrompt);
     window.addEventListener('appinstalled',onInstalled);
