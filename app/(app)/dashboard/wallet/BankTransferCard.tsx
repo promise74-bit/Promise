@@ -15,7 +15,7 @@ function useCopy() { const [done, setDone] = useState(''); return { done, copy: 
 export default function BankTransferCard({ account, balance, min, max }: { account: Account; balance: number; min: number; max: number }) {
   const router = useRouter(); const { done, copy } = useCopy();
   const [tab, setTab] = useState<'once' | 'permanent'>('once');
-  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [needPhone, setNeedPhone] = useState(false);
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [needPhone, setNeedPhone] = useState(false); const lastCode = useRef('');
   const [amount, setAmount] = useState(''); const [temp, setTemp] = useState<Temp | null>(null);
     const startBalance = useRef(balance); const [credited, setCredited] = useState(false);
 
@@ -24,12 +24,12 @@ export default function BankTransferCard({ account, balance, min, max }: { accou
   useEffect(() => { if (temp && balance >= startBalance.current + temp.amount - 0.001) setCredited(true); }, [balance, temp]);
 
   async function post(url: string, body: object) {
-    setBusy(true); setError(''); setNeedPhone(false);
-    try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json(); if (!r.ok) { setNeedPhone(d.code === 'PHONE_REQUIRED'); throw new Error(d.error || 'Something went wrong.'); } return d; }
+    setBusy(true); setError(''); setNeedPhone(false); lastCode.current = '';
+    try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json(); if (!r.ok) { lastCode.current = d.code || ''; setNeedPhone(d.code === 'PHONE_REQUIRED'); throw new Error(d.error || 'Something went wrong.'); } return d; }
     catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); return null; } finally { setBusy(false); }
   }
   async function makeTemp(e: React.FormEvent) { e.preventDefault(); const n = Number(amount); if (!Number.isInteger(n) || n < min || n > max) { setError(`Enter a whole amount from ₦${min.toLocaleString()} to ₦${max.toLocaleString()}.`); return; } startBalance.current = balance; setCredited(false); const d = await post('/api/wallet/temp-account', { amount: n }); if (d) setTemp(d); }
-  async function makePermanent() { const d = await post('/api/wallet/account', {}); if (d) router.refresh(); }
+  async function makePermanent() { const d = await post('/api/wallet/account', {}); if (d) { router.refresh(); return; } if (lastCode.current === 'DVA_UNAVAILABLE') setTab('once'); }
 
   const bankCard = (bank: string, number: string, name: string, note: string, extra?: React.ReactNode) => (
     <div>

@@ -27,6 +27,6 @@ export async function POST() {
     const m = e instanceof Error ? e.message : '';
     console.error('[wallet] dedicated account failed:', m);
     if (m === 'PHONE_REQUIRED') return NextResponse.json({ error: 'Add your phone number on your profile first, then try again.', code: 'PHONE_REQUIRED' }, { status: 400 });
-    return NextResponse.json({ error: 'A permanent account is not available yet. Use the one-time account or fund with your card.' }, { status: 503 });
+    return NextResponse.json({ error: 'Permanent accounts are not open yet. Use the one-time account ("Without NIN") or fund with your card.', code: 'DVA_UNAVAILABLE' }, { status: 503 });
   }
 }
