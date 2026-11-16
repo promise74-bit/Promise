@@ -40,10 +40,15 @@ export async function POST(request: Request) {
     const buttonLabel = String(b.buttonLabel || '').trim().slice(0, 40);
     const buttonUrl = String(b.buttonUrl || '').trim();
     const testOnly = b.testOnly === true;
-    if (!subject || !message) return NextResponse.json({ error: 'Add a subject and a message.' }, { status: 400 });
+    // Optional custom HTML design. {{name}} becomes each customer's first name.
+    const customHtml = String(b.html || '').trim().slice(0, 200000);
+    if (!subject || (!message && !customHtml)) return NextResponse.json({ error: 'Add a subject and either a message or your HTML design.' }, { status: 400 });
     if (buttonUrl && !/^https?:\/\//i.test(buttonUrl)) return NextResponse.json({ error: 'Button link must start with http:// or https://' }, { status: 400 });
 
-    const mail = broadcastEmail({ subject, message, siteUrl: getSiteUrl(request), buttonLabel, buttonUrl });
+    // No HTML supplied -> use the default branded design.
+    const mail = customHtml
+      ? { subject, html: customHtml.replace(/\{\{\s*name\s*\}\}/gi, '{{params.name}}') }
+      : broadcastEmail({ subject, message, siteUrl: getSiteUrl(request), buttonLabel, buttonUrl });
     let recipients: { email: string; name: string }[];
     if (testOnly) {
       recipients = [{ email: user.email!, name: esc(first((user.user_metadata as any)?.full_name, user.email!)) }];
