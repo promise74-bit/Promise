@@ -12,7 +12,7 @@ const CHIPS = [500, 1000, 2000, 5000, 10000];
 function useCopy() { const [done, setDone] = useState(''); return { done, copy: (t: string) => navigator.clipboard?.writeText(t).then(() => { setDone(t); setTimeout(() => setDone(''), 1800); }).catch(() => {}) }; }
 
 // In-app funding like WoodPay: a bank-card-style account the customer can transfer to. Works with or without a NIN.
-export default function BankTransferCard({ account, balance, min, max }: { account: Account; balance: number; min: number; max: number }) {
+export default function BankTransferCard({ account, balance, min, max, embedded = false }: { account: Account; balance: number; min: number; max: number; embedded?: boolean }) {
   const router = useRouter(); const { done, copy } = useCopy();
   const [tab, setTab] = useState<'once' | 'permanent'>('once');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [needPhone, setNeedPhone] = useState(false); const lastCode = useRef('');
@@ -48,7 +48,7 @@ export default function BankTransferCard({ account, balance, min, max }: { accou
 
   const inp = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0757d5]';
   return (
-    <section id="transfer" className="rounded-3xl bg-white p-6 shadow-sm">
+    <section id={embedded ? undefined : 'transfer'} className={embedded ? '' : 'rounded-3xl bg-white p-6 shadow-sm'}>
       <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><Landmark size={20} /></span><div><h2 className="text-lg font-black">Fund wallet by bank transfer</h2><p className="text-xs text-slate-500">Pay from any bank app. Credited automatically.</p></div></div>
 
       <div className="mt-4">

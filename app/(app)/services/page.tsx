@@ -1,3 +1,4 @@
+import { FundWalletButton } from '@/components/wallet/FundSheet';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
@@ -47,10 +48,10 @@ export default async function ServicesHub() {
         <p className="text-sm font-bold text-[#0757d5]">SERVICES</p>
         <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">What do you need today?</h1>
       </div>
-      <Link href="/dashboard/wallet" className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-[#f0f6ff] px-4 py-3 text-sm hover:border-[#0757d5]">
+      <FundWalletButton className="mb-5 flex w-full items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-[#f0f6ff] px-4 py-3 text-left text-sm hover:border-[#0757d5]">
         <span><b className="text-[#0b1730]">Pay faster with your wallet.</b> <span className="text-slate-600">Fund once, pay for any service in one tap.</span></span>
-        <span className="shrink-0 font-bold text-[#0757d5]">Open wallet →</span>
-      </Link>
+        <span className="shrink-0 font-bold text-[#0757d5]">Fund wallet →</span>
+      </FundWalletButton>
       {groups.length === 0
         ? <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Services are temporarily unavailable. Please contact us for assistance.</p>
         : <ServiceHub groups={groups} />}

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowDownLeft, ArrowUpRight, Bell, Building2, ChevronRight, FileText, GraduationCap, LayoutGrid, RotateCcw, Smartphone, Tv, Wifi, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { FundWalletButton } from '@/components/wallet/FundSheet';
 import BalanceCard from './wallet/BalanceCard';
 
 export const metadata = { title: 'Dashboard' };
@@ -70,7 +71,7 @@ export default async function Dashboard() {
         <section className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between"><h2 className="text-lg font-black">Wallet activity</h2><Link href="/dashboard/wallet#history" className="text-sm font-bold text-[#0757d5]">View all</Link></div>
           {(txns ?? []).length === 0
-            ? <div className="mt-4 rounded-2xl border border-dashed border-slate-200 p-6 text-center"><p className="font-bold">No activity yet</p><Link href="/dashboard/wallet" className="mt-3 inline-flex rounded-xl bg-[#0757d5] px-4 py-2.5 text-sm font-bold text-white">Fund your wallet</Link></div>
+            ? <div className="mt-4 rounded-2xl border border-dashed border-slate-200 p-6 text-center"><p className="font-bold">No activity yet</p><FundWalletButton className="mt-3 inline-flex rounded-xl bg-[#0757d5] px-4 py-2.5 text-sm font-bold text-white">Fund your wallet</FundWalletButton></div>
             : <ul className="mt-3 divide-y divide-slate-100">{(txns ?? []).map((t: any) => {
                 const credit = t.direction === 'credit'; const Icon = t.kind === 'refund' ? RotateCcw : credit ? ArrowDownLeft : ArrowUpRight;
                 return <li key={t.id} className="flex items-center gap-3 py-3">

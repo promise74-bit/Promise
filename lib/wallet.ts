@@ -2,8 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { fulfillOrder } from '@/lib/woodpay';
 import { sendOrderEmail } from '@/lib/order-emails';
 
-export const MIN_FUNDING = 100;
-export const MAX_FUNDING = 500000;
+import { MIN_FUNDING, MAX_FUNDING } from '@/lib/wallet-limits';
+export { MIN_FUNDING, MAX_FUNDING };
 
 export function validFundingAmount(value: unknown) {
   const n = Number(value);

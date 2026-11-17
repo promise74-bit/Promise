@@ -1,12 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ChevronRight, Eye, EyeOff, Plus } from 'lucide-react';
+import { useFundSheet } from '@/components/wallet/FundSheet';
 
 // WoodPay-style balance card: dark glass, glow, show/hide eye, "Fund wallet" strip.
-export default function BalanceCard({ balance, fundHref = '#transfer' }: { balance: number; fundHref?: string }) {
-  const [hidden, setHidden] = useState(false);
+export default function BalanceCard({ balance }: { balance: number; fundHref?: string }) {
+  const { open } = useFundSheet(); const [hidden, setHidden] = useState(false);
   useEffect(() => { try { setHidden(localStorage.getItem('pcr_bal_hidden') === '1'); } catch { /* ignore */ } }, []);
   const toggle = () => setHidden(h => { const n = !h; try { localStorage.setItem('pcr_bal_hidden', n ? '1' : '0'); } catch { /* ignore */ } return n; });
   const [whole, kobo] = balance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split('.');
@@ -20,9 +20,9 @@ export default function BalanceCard({ balance, fundHref = '#transfer' }: { balan
       <p className="relative mt-2 flex items-baseline gap-1 font-mono text-4xl font-semibold sm:text-5xl">
         <small className="text-xl font-medium opacity-60">₦</small>{hidden ? '••••••' : <>{whole}<small className="text-xl font-medium opacity-60">.{kobo}</small></>}
       </p>
-      <Link href={fundHref} className="relative mt-5 flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm font-bold backdrop-blur hover:bg-white/15">
+      <button type="button" onClick={open} className="relative mt-5 flex w-full items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 text-sm font-bold backdrop-blur hover:bg-white/15">
         <span className="flex items-center gap-2"><Plus size={18} strokeWidth={2.5} /> Fund wallet</span><ChevronRight size={18} className="opacity-70" />
-      </Link>
+      </button>
     </section>
   );
 }

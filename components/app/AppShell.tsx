@@ -9,6 +9,7 @@ import HelpBot from '@/components/app/HelpBot';
 import InstallButton from '@/components/pwa/InstallButton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SignOutButton from '@/components/dashboard/SignOutButton';
+import { FundSheetProvider, useFundSheet } from '@/components/wallet/FundSheet';
 import type { NavGroup } from '@/lib/app-nav';
 import { FACEBOOK_URL } from '@/lib/social';
 
@@ -59,7 +60,12 @@ function SideNav({ groups, path, unread, isAdmin, onNavigate }: { groups: NavGro
   );
 }
 
-export default function AppShell({ groups, name, email, userId, balance, unread, isAdmin, children }: Props) {
+export default function AppShell(props: Props) {
+  return <FundSheetProvider balance={props.balance}><AppShellInner {...props} /></FundSheetProvider>;
+}
+
+function AppShellInner({ groups, name, email, userId, balance, unread, isAdmin, children }: Props) {
+  const { open: openFund } = useFundSheet();
   const path = usePathname() || '/';
   const [drawer, setDrawer] = useState(false);
   useEffect(() => { setDrawer(false); }, [path]);
@@ -85,7 +91,7 @@ export default function AppShell({ groups, name, email, userId, balance, unread,
           <button onClick={() => setDrawer(true)} aria-label="Open menu" className="rounded-lg p-2 hover:bg-slate-100 lg:hidden"><Menu size={22} /></button>
           <div className="lg:hidden">{logo}</div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Link href="/dashboard/wallet" className="flex items-center gap-2 rounded-xl bg-[#0757d5] px-3 py-1.5 text-white shadow-sm"><Wallet size={16} /><span className="text-sm font-black">₦{balance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span><span className="hidden rounded-md bg-white/20 px-1.5 py-0.5 text-[11px] font-bold sm:inline">+ Fund</span></Link>
+            <button type="button" onClick={openFund} aria-label="Fund wallet" className="flex items-center gap-2 rounded-xl bg-[#0757d5] px-3 py-1.5 text-white shadow-sm"><Wallet size={16} /><span className="text-sm font-black">₦{balance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span><span className="hidden rounded-md bg-white/20 px-1.5 py-0.5 text-[11px] font-bold sm:inline">+ Fund</span></button>
             <NotificationBell userId={userId} initialUnread={unread} />
             <details className="relative"><summary className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-full bg-[#0b1730] text-sm font-black text-white">{initial}</summary>
               <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
