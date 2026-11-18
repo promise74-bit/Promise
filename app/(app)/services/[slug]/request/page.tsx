@@ -142,6 +142,7 @@ export default function RequestService(){
  const rule=rules[kind==="isp"?"data":kind]||{mode:"percent" as const,value:0};
  const serviceFee=providerAmount>0?(rule.mode==="flat"?Math.max(0,Math.round(rule.value)):Math.ceil(providerAmount*rule.value/100)):0;
  const total=providerAmount+serviceFee;
+ const feeOn=(base:number)=>base>0?base+(rule.mode==="flat"?Math.max(0,Math.round(rule.value)):Math.ceil(base*rule.value/100)):0;
 
  function renderField(f:ServiceField){
   // Provider IDs and provider-cost fields are internal integration data, never customer inputs.
@@ -276,7 +277,7 @@ export default function RequestService(){
      <select value={form.exam_type||""} onChange={e=>set("exam_type",e.target.value)} required disabled={utilityLoading||utilityProviders.length===0} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">{utilityLoading?"Loading exam providers…":utilityError?"Service temporarily unavailable":"Choose exam body"}</option>{utilityProviders.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
     </label>
     <label className="block text-sm font-bold">Quantity *<input type="number" min="1" max="10" step="1" value={form.quantity||"1"} onChange={e=>set("quantity",e.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
-    {utilityError||(!utilityLoading&&utilityProviders.length===0)?<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>:examPriceConfigured?<p className="text-sm text-slate-600">Price per PIN: ₦{examUnitPrice.toLocaleString()}. PINs are delivered after the provider completes processing.</p>:<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Choose WAEC, NECO or NABTEB to see the PIN price.</p>}
+    {utilityError||(!utilityLoading&&utilityProviders.length===0)?<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>:examPriceConfigured?<p className="text-sm text-slate-600">Price per PIN: ₦{Math.round(total/Math.max(1,Number(form.quantity||1))).toLocaleString()}. PINs are delivered after the provider completes processing.</p>:<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Choose WAEC, NECO or NABTEB to see the PIN price.</p>}
     {utilityError&&<p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{utilityError}</p>}
    </div>}
    {kind==="datapin"&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -293,7 +294,7 @@ export default function RequestService(){
     <label className="block text-sm font-bold">Internet provider *
      <select value={form.isp_provider||""} onChange={e=>{set("isp_provider",e.target.value);set("provider_plan_id","");set("provider_amount","");}} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">Choose provider</option><option value="smile">Smile</option><option value="spectranet">Spectranet</option></select></label>
     <label className="block text-sm font-bold">Plan *
-     <select value={form.provider_plan_id||""} onChange={e=>{const p=ispPlans.find(x=>x.id===e.target.value);set("provider_plan_id",e.target.value);set("provider_amount",p?String(p.price):"");set("plan_name",p?p.name:"");}} required disabled={!form.isp_provider||ispLoading||ispPlans.length===0} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">{ispLoading?"Loading plans…":"Choose plan"}</option>{ispPlans.map(p=><option key={p.id} value={p.id}>{p.name} — ₦{p.price.toLocaleString()}</option>)}</select>
+     <select value={form.provider_plan_id||""} onChange={e=>{const p=ispPlans.find(x=>x.id===e.target.value);set("provider_plan_id",e.target.value);set("provider_amount",p?String(p.price):"");set("plan_name",p?p.name:"");}} required disabled={!form.isp_provider||ispLoading||ispPlans.length===0} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3"><option value="">{ispLoading?"Loading plans…":"Choose plan"}</option>{ispPlans.map(p=><option key={p.id} value={p.id}>{p.name} — ₦{feeOn(Number(p.price)).toLocaleString()}</option>)}</select>
      {ispError&&<span className="mt-1 block text-xs font-normal text-red-600">{ispError}</span>}</label>
     <label className="block text-sm font-bold">{form.isp_provider==="spectranet"?"Spectranet router / account ID":"Smile account number or phone number"} *
      <input value={form.account_id||""} onChange={e=>set("account_id",e.target.value.replace(/\s/g,""))} required minLength={3} maxLength={30} autoComplete="off" className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3"/></label>
@@ -302,7 +303,7 @@ export default function RequestService(){
     <label className="block text-sm font-bold">TV package *
      <select value={form.provider_plan_id||""} disabled={cableLoading||cablePlans.length===0} onChange={e=>{const plan=cablePlans.find(p=>p.id===e.target.value);set("provider_plan_id",plan?.id||"");set("provider_amount",plan?String(plan.price):"");set("plan_name",plan?.name||"");}} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3">
       <option value="">{cableLoading?"Loading packages…":cableError?"Service temporarily unavailable":cablePlans.length?"Choose a package":"No packages available"}</option>
-      {cablePlans.map(plan=><option key={plan.id} value={plan.id}>{plan.name} — ₦{plan.price.toLocaleString()}</option>)}
+      {cablePlans.map(plan=><option key={plan.id} value={plan.id}>{plan.name} — ₦{feeOn(Number(plan.price)).toLocaleString()}</option>)}
      </select>
     </label>
     <label className="block text-sm font-bold">Smartcard / IUC number *
@@ -319,14 +320,14 @@ export default function RequestService(){
     <label className="block text-sm font-bold">Data plan *
      <select value={form.provider_plan_id||""} disabled={plansLoading||dataPlans.length===0} onChange={e=>{const plan=dataPlans.find(p=>p.id===e.target.value);set("provider_plan_id",plan?.id||"");set("provider_amount",plan?String(plan.price):"");set("plan_name",plan?.name||"");set("plan_validity",plan?.validity||"");}} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3">
       <option value="">{plansLoading?"Loading live plans…":plansError?"Service temporarily unavailable":dataPlans.length?"Choose a data plan":"No plans available"}</option>
-      {dataPlans.map(plan=><option key={plan.id} value={plan.id}>{plan.name}{plan.validity?" · "+plan.validity:""} — ₦{Number(plan.price).toLocaleString()}</option>)}
+      {dataPlans.map(plan=><option key={plan.id} value={plan.id}>{plan.name}{plan.validity?" · "+plan.validity:""} — ₦{feeOn(Number(plan.price)).toLocaleString()}</option>)}
      </select>
     </label>
     {plansError&&<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>}
     {!plansLoading&&!plansError&&dataPlans.length===0&&<p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{SERVICE_UNAVAILABLE_MESSAGE}</p>}
    </div>}
    {params.slug!=="jamb-services"&&fields.filter(f=>!(isVTU&&(isInternalProviderField(f)||["cable","electricity","exam","datapin"].includes(kind)||((kind==="data"||kind==="cable")&&f.field_key==="amount")||(kind==="data"&&f.field_key==="network")))).map(f=><label key={f.field_key} className="block text-sm font-bold">{f.label}{f.required&&<span className="text-red-500"> *</span>}{renderField(f)}</label>)}
-   {isVTU&&providerAmount>0&&<div className="rounded-2xl bg-slate-50 p-4 text-sm"><div className="flex justify-between"><span>Provider amount</span><b>₦{providerAmount.toLocaleString()}</b></div><div className="mt-2 flex justify-between"><span>Service fee</span><b>₦{serviceFee.toLocaleString()}</b></div><div className="mt-3 flex justify-between border-t pt-3 text-base"><span className="font-black">Total to pay</span><b>₦{total.toLocaleString()}</b></div></div>}
+   {isVTU&&providerAmount>0&&<div className="rounded-2xl bg-slate-50 p-4 text-sm"><div className="flex justify-between text-base"><span className="font-black">Amount to pay</span><b>₦{total.toLocaleString()}</b></div></div>}
    {jambFields.length>0&&<div className="space-y-4 rounded-2xl border border-slate-200 p-4">
     <div><p className="font-black">Your JAMB details</p><p className="text-xs text-slate-500">Enter them exactly as they appear on your JAMB profile. Our team uses these to process your request.</p></div>
     {jambNoteFor(jambSlug)&&<p className="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">{jambNoteFor(jambSlug)}</p>}

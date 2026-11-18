@@ -59,7 +59,7 @@ export default async function OrderDetail({params}:{params:Promise<{id:string}>}
     : PIN_SLUGS.includes(String(service?.slug))
     ? deliveredPinCount < expectedPins || /PIN pending/i.test(savedPinsText)
     : false;
-  const ordered=describeOrdered(String(service?.slug||''),order.form_data||{});
+  const ordered=describeOrdered(String(service?.slug||''),order.form_data||{},true);
   const received=describeReceived(String(service?.slug||''),String(order.status),order.form_data||{});
   const tone={good:'border-emerald-300 bg-emerald-50 text-emerald-900',wait:'border-amber-300 bg-amber-50 text-amber-900',bad:'border-red-300 bg-red-50 text-red-900',neutral:'border-slate-200 bg-slate-50 text-slate-700'}[received.tone];
 
